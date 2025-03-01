@@ -313,29 +313,164 @@ The Shade Agent is a Worker Agent running in a TEE on Phala Cloud. It includes:
 - Optimized query methods for due subscriptions
 - Horizontal scaling of Shade Agents
 
+## API Endpoints
+
+The subscription service exposes several API endpoints that serve different components of the system:
+
+```mermaid
+flowchart TD
+    subgraph "User Interface"
+        UI[Web Interface]
+    end
+    
+    subgraph "Merchant Site"
+        MS[Merchant Interface]
+    end
+    
+    subgraph "Shade Agent"
+        SA[TEE Worker]
+    end
+    
+    subgraph "API Endpoints"
+        subscription["/api/subscription"]
+        merchants["/api/merchants"]
+        monitor["/api/monitor"]
+        derive["/api/derive"]
+        register["/api/register"]
+        isVerified["/api/isVerified"]
+    end
+    
+    subgraph "Smart Contract"
+        SC[Subscription Contract]
+    end
+    
+    UI --> subscription
+    UI --> merchants
+    UI --> monitor
+    
+    MS --> subscription
+    MS --> merchants
+    
+    SA --> monitor
+    SA --> derive
+    SA --> register
+    SA --> isVerified
+    
+    subscription --> SC
+    merchants --> SC
+    monitor --> SC
+    register --> SC
+    isVerified --> SC
+    
+    classDef endpoint fill:#f9f,stroke:#333,stroke-width:2px;
+    class subscription,merchants,monitor,derive,register,isVerified endpoint;
+```
+
+### Endpoint Details
+
+#### 1. `/api/subscription`
+**Used by**: User Interface, Merchant Site
+**Functions**:
+- `create`: Create a new subscription
+- `register_key`: Register a key for a subscription
+- `get`: Get subscription details
+- `get_user_subscriptions`: Get all subscriptions for a user
+- `pause`: Pause a subscription
+- `resume`: Resume a paused subscription
+- `cancel`: Cancel a subscription
+
+#### 2. `/api/merchants`
+**Used by**: User Interface, Merchant Site
+**Functions**:
+- Get a list of registered merchants
+
+#### 3. `/api/monitor`
+**Used by**: User Interface, Shade Agent
+**Functions**:
+- `start`: Start the subscription monitoring service
+- `stop`: Stop the subscription monitoring service
+- `status`: Get the monitoring status
+
+#### 4. `/api/derive`
+**Used by**: Shade Agent
+**Functions**:
+- Generate a secure account ID within the TEE
+- Derive keys using TEE-based entropy
+
+#### 5. `/api/register`
+**Used by**: Shade Agent
+**Functions**:
+- Register the Shade Agent with the contract
+- Provide attestation proof of the TEE environment
+
+#### 6. `/api/isVerified`
+**Used by**: Shade Agent
+**Functions**:
+- Verify that the agent's codehash is approved by the contract
+
+### API Integration Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Web Interface
+    participant API as API Endpoints
+    participant TEE as Shade Agent (TEE)
+    participant Contract as Subscription Contract
+    
+    Note over TEE: Agent Registration
+    TEE->>API: POST /api/register
+    API->>Contract: register_worker(quote_hex, collateral, checksum, codehash)
+    Contract-->>API: Registration result
+    API-->>TEE: Confirmation
+    
+    TEE->>API: POST /api/isVerified
+    API->>Contract: is_verified_by_codehash(codehash)
+    Contract-->>API: Verification result
+    API-->>TEE: Confirmation
+    
+    Note over User,Contract: Subscription Creation
+    User->>UI: Select subscription plan
+    UI->>API: POST /api/derive
+    API->>TEE: Generate secure keypair
+    TEE-->>API: Return accountId
+    API-->>UI: Return accountId
+    
+    UI->>API: POST /api/subscription (action: create)
+    API->>Contract: create_subscription(...)
+    Contract-->>API: Return subscription_id
+    API-->>UI: Return subscription_id
+    
+    UI->>API: POST /api/subscription (action: register_key)
+    API->>TEE: Generate keypair for subscription
+    TEE-->>API: Return keypair
+    API->>Contract: register_subscription_key(...)
+    Contract-->>API: Confirmation
+    API-->>UI: Confirmation
+    
+    Note over TEE,Contract: Payment Processing
+    User->>UI: Start monitoring
+    UI->>API: POST /api/monitor (action: start)
+    API->>TEE: Start monitoring service
+    TEE-->>API: Confirmation
+    API-->>UI: Confirmation
+    
+    TEE->>API: Check due subscriptions
+    API->>Contract: get_due_subscriptions()
+    Contract-->>API: List of due subscriptions
+    API-->>TEE: Due subscriptions
+    
+    loop For each due subscription
+        TEE->>TEE: Retrieve/derive private key
+        TEE->>API: Process payment
+        API->>Contract: process_payment(subscription_id)
+        Contract->>Contract: Transfer payment
+        Contract-->>API: Payment result
+        API-->>TEE: Payment result
+    end
+```
+
 ## Future Extensions
-
-1. **Dynamic Pricing**:
-   - Integration with external price feeds
-   - Usage-based pricing models
-   - Dynamic adjustments based on market conditions
-
-2. **Advanced Payment Options**:
-   - Split payments across multiple tokens
-   - Automatic currency conversion
-   - Payment routing optimization
-
-3. **Integration Ecosystem**:
-   - APIs for third-party integration
-   - Webhook notifications
-   - SDK for merchant integration
-
-4. **Governance Features**:
-   - DAO-controlled subscription service
-   - Community-governed fee structure
-   - Decentralized dispute resolution
-
-## Conclusion
 
 This architecture provides a secure, flexible foundation for a blockchain-based subscription service. By leveraging NEAR's Function Call Access Keys and the security of TEEs through Shade Agents, it offers a superior alternative to traditional subscription services with enhanced security, transparency, and user control.
 
