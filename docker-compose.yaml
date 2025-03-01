@@ -1,8 +1,7 @@
-version: '4.0'
 services:
     web:
         platform: linux/amd64 # Explicitly set for TDX
-        image: mattdlockyer/based-agent-test:latest@sha256:67b7d2074ac0b6621035b9938f896ed2367707d8384e1e3baa4c0c4c39d05da7
+        image: elliotbraem/ping-subscription-service:latest@sha256:769964cdceb6b676facc598f50d470e7bc705f8f661eca950b674c92d9f7f2b7
         container_name: web
         ports:
             - '3000:3000'
