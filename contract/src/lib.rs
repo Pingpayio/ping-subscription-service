@@ -1,13 +1,20 @@
 use near_sdk::{
-    bs58, env, json_types::U128, log, near, require, store::{IterableMap, IterableSet, LookupMap, Vector}, AccountId, PanicOnDefault
+    bs58, env,
+    json_types::U128,
+    log, near, require,
+    store::{IterableMap, IterableSet, LookupMap},
+    AccountId, PanicOnDefault,
 };
 
 pub mod collateral;
 pub mod models;
 pub mod utils;
 
-use models::{Subscription, SubscriptionId, Worker, SubscriptionStatus, SubscriptionFrequency, PaymentMethod, PaymentResult};
 use hex::decode;
+use models::{
+    PaymentMethod, PaymentResult, Subscription, SubscriptionFrequency, SubscriptionId,
+    SubscriptionStatus, Worker,
+};
 
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
@@ -40,23 +47,29 @@ impl Contract {
     }
 
     // Admin methods
-    
+
     /// Registers a merchant
     pub fn register_merchant(&mut self, merchant_id: AccountId) {
-        require!(env::predecessor_account_id() == self.owner_id, "Only owner can call this method");
+        require!(
+            env::predecessor_account_id() == self.owner_id,
+            "Only owner can call this method"
+        );
         self.merchants.insert(merchant_id.clone());
         log!("Merchant registered: {}", merchant_id);
     }
-    
+
     /// Gets all registered merchants
     pub fn get_merchants(&self) -> Vec<AccountId> {
         self.merchants.iter().map(|id| id.clone()).collect()
     }
 
     // Worker methods
-    
+
     pub fn require_owner(&self) {
-        require!(env::predecessor_account_id() == self.owner_id, "Only owner can call this method");
+        require!(
+            env::predecessor_account_id() == self.owner_id,
+            "Only owner can call this method"
+        );
     }
 
     pub fn require_worker(&self, codehash: String) {
@@ -66,7 +79,10 @@ impl Contract {
             .unwrap()
             .to_owned();
 
-        require!(worker.codehash == codehash, "Worker not verified for this codehash");
+        require!(
+            worker.codehash == codehash,
+            "Worker not verified for this codehash"
+        );
     }
 
     pub fn is_verified_by_codehash(&self, codehash: String) {
@@ -82,7 +98,10 @@ impl Contract {
 
     pub fn is_verified_by_approved_codehash(&self) {
         let worker = self.get_worker(env::predecessor_account_id());
-        require!(self.approved_codehashes.contains(&worker.codehash), "Worker not approved");
+        require!(
+            self.approved_codehashes.contains(&worker.codehash),
+            "Worker not approved"
+        );
         log!("The agent abides.");
     }
 
@@ -117,7 +136,7 @@ impl Contract {
     }
 
     // Subscription methods
-    
+
     /// Creates a new subscription
     pub fn create_subscription(
         &mut self,
@@ -129,14 +148,17 @@ impl Contract {
         end_date: Option<u64>,
     ) -> SubscriptionId {
         // Verify merchant is registered
-        require!(self.merchants.contains(&merchant_id), "Merchant not registered");
-        
+        require!(
+            self.merchants.contains(&merchant_id),
+            "Merchant not registered"
+        );
+
         let user_id = env::predecessor_account_id();
         let now = env::block_timestamp() / 1000000000;
-        
+
         // Generate subscription ID
         let subscription_id = format!("sub-{}-{}", user_id, now);
-        
+
         // Calculate next payment date based on frequency
         let next_payment_date = match frequency {
             SubscriptionFrequency::Daily => now + 86400, // 1 day in seconds
@@ -145,7 +167,7 @@ impl Contract {
             SubscriptionFrequency::Quarterly => now + 7776000, // 90 days in seconds
             SubscriptionFrequency::Yearly => now + 31536000, // 365 days in seconds
         };
-        
+
         // Create subscription
         let subscription = Subscription {
             id: subscription_id.clone(),
@@ -162,144 +184,182 @@ impl Contract {
             payments_made: 0,
             end_date,
         };
-        
+
         // Store subscription
-        self.subscriptions.insert(subscription_id.clone(), subscription);
-        
+        self.subscriptions
+            .insert(subscription_id.clone(), subscription);
+
         log!("Subscription created: {}", subscription_id);
-        
+
         subscription_id
     }
-    
+
     /// Registers a function call access key for a subscription
-    pub fn register_subscription_key(&mut self, public_key: String, subscription_id: SubscriptionId) {
+    pub fn register_subscription_key(
+        &mut self,
+        public_key: String,
+        subscription_id: SubscriptionId,
+    ) {
         let user_id = env::predecessor_account_id();
-        
+
         // Verify subscription exists and belongs to user
-        let subscription = self.subscriptions.get(&subscription_id)
+        let subscription = self
+            .subscriptions
+            .get(&subscription_id)
             .expect("Subscription not found");
-        require!(subscription.user_id == user_id, "Not authorized to register key for this subscription");
-        
+        require!(
+            subscription.user_id == user_id,
+            "Not authorized to register key for this subscription"
+        );
+
         // Register key
-        self.subscription_keys.insert(public_key, subscription_id.clone());
-        
+        self.subscription_keys
+            .insert(public_key, subscription_id.clone());
+
         log!("Key registered for subscription: {}", subscription_id);
     }
-    
+
     /// Cancels a subscription
     pub fn cancel_subscription(&mut self, subscription_id: SubscriptionId) {
         let user_id = env::predecessor_account_id();
-        
+
         // Verify subscription exists and belongs to user
-        let mut subscription = self.subscriptions.get(&subscription_id)
-            .expect("Subscription not found").clone();
-        require!(subscription.user_id == user_id, "Not authorized to cancel this subscription");
-        
+        let mut subscription = self
+            .subscriptions
+            .get(&subscription_id)
+            .expect("Subscription not found")
+            .clone();
+        require!(
+            subscription.user_id == user_id,
+            "Not authorized to cancel this subscription"
+        );
+
         // Update subscription status
         subscription.status = SubscriptionStatus::Canceled;
         subscription.updated_at = env::block_timestamp() / 1000000000;
-        
+
         // Store updated subscription
-        self.subscriptions.insert(subscription_id.clone(), subscription);
-        
+        self.subscriptions
+            .insert(subscription_id.clone(), subscription);
+
         log!("Subscription canceled: {}", subscription_id);
     }
-    
+
     /// Pauses a subscription
     pub fn pause_subscription(&mut self, subscription_id: SubscriptionId) {
         let user_id = env::predecessor_account_id();
-        
+
         // Verify subscription exists and belongs to user
-        let mut subscription = self.subscriptions.get(&subscription_id)
-            .expect("Subscription not found").clone();
-        require!(subscription.user_id == user_id, "Not authorized to pause this subscription");
-        
+        let mut subscription = self
+            .subscriptions
+            .get(&subscription_id)
+            .expect("Subscription not found")
+            .clone();
+        require!(
+            subscription.user_id == user_id,
+            "Not authorized to pause this subscription"
+        );
+
         // Update subscription status
         subscription.status = SubscriptionStatus::Paused;
         subscription.updated_at = env::block_timestamp() / 1000000000;
-        
+
         // Store updated subscription
-        self.subscriptions.insert(subscription_id.clone(), subscription);
-        
+        self.subscriptions
+            .insert(subscription_id.clone(), subscription);
+
         log!("Subscription paused: {}", subscription_id);
     }
-    
+
     /// Resumes a paused subscription
     pub fn resume_subscription(&mut self, subscription_id: SubscriptionId) {
         let user_id = env::predecessor_account_id();
-        
+
         // Verify subscription exists and belongs to user
-        let mut subscription = self.subscriptions.get(&subscription_id)
-            .expect("Subscription not found").clone();
-        require!(subscription.user_id == user_id, "Not authorized to resume this subscription");
-        require!(matches!(subscription.status, SubscriptionStatus::Paused), "Subscription is not paused");
-        
+        let mut subscription = self
+            .subscriptions
+            .get(&subscription_id)
+            .expect("Subscription not found")
+            .clone();
+        require!(
+            subscription.user_id == user_id,
+            "Not authorized to resume this subscription"
+        );
+        require!(
+            matches!(subscription.status, SubscriptionStatus::Paused),
+            "Subscription is not paused"
+        );
+
         // Update subscription status
         subscription.status = SubscriptionStatus::Active;
         subscription.updated_at = env::block_timestamp() / 1000000000;
-        
+
         // Store updated subscription
-        self.subscriptions.insert(subscription_id.clone(), subscription);
-        
+        self.subscriptions
+            .insert(subscription_id.clone(), subscription);
+
         log!("Subscription resumed: {}", subscription_id);
     }
-    
+
     /// Gets a subscription by ID
     pub fn get_subscription(&self, subscription_id: SubscriptionId) -> Option<Subscription> {
         self.subscriptions.get(&subscription_id).cloned()
     }
-    
+
     /// Gets all subscriptions for a user
     pub fn get_user_subscriptions(&self, user_id: AccountId) -> Vec<Subscription> {
         let mut subscriptions = Vec::new();
-        
+
         for (_, subscription) in self.subscriptions.iter() {
             if subscription.user_id == user_id {
                 subscriptions.push(subscription.clone());
             }
         }
-        
+
         subscriptions
     }
-    
+
     /// Gets all subscriptions for a merchant
     pub fn get_merchant_subscriptions(&self, merchant_id: AccountId) -> Vec<Subscription> {
         let mut subscriptions = Vec::new();
-        
+
         for (_, subscription) in self.subscriptions.iter() {
             if subscription.merchant_id == merchant_id {
                 subscriptions.push(subscription.clone());
             }
         }
-        
+
         subscriptions
     }
 
     // Payment methods
-    
+
     /// Processes a payment for a subscription
     pub fn process_payment(&mut self, subscription_id: SubscriptionId) -> PaymentResult {
         let now = env::block_timestamp() / 1000000000;
-        
+
         // Verify key is authorized for this subscription
         let public_key = env::signer_account_pk();
         let public_key_str = bs58::encode(public_key.as_bytes()).into_string();
         let authorized_subscription_id = self.subscription_keys.get(&public_key_str);
-        
+
         match authorized_subscription_id {
             Some(id) if *id == subscription_id => {
                 // Key is authorized, proceed with payment
-                let subscription_clone: Subscription = self.subscriptions.get(&subscription_id)
-                    .expect("Subscription not found").clone();
+                let subscription_clone: Subscription = self
+                    .subscriptions
+                    .get(&subscription_id)
+                    .expect("Subscription not found")
+                    .clone();
 
                 let mut subscription = subscription_clone.clone(); // mutable clone
-                
+
                 // Verify subscription is active
                 if !matches!(subscription.status, SubscriptionStatus::Active) {
                     // Clone the values we need
                     let amount = subscription.amount.clone();
                     let status = format!("{:?}", subscription.status);
-                    
+
                     return PaymentResult {
                         success: false,
                         subscription_id,
@@ -308,12 +368,12 @@ impl Contract {
                         error: Some(format!("Subscription is not active: {}", status)),
                     };
                 }
-                
+
                 // Verify payment is due
                 if subscription.next_payment_date > now {
                     // Clone the values we need
                     let amount = subscription.amount.clone();
-                    
+
                     return PaymentResult {
                         success: false,
                         subscription_id,
@@ -322,13 +382,14 @@ impl Contract {
                         error: Some("Payment is not due yet".to_string()),
                     };
                 }
-                
+
                 // Verify max payments limit
                 if let Some(max) = subscription.max_payments {
                     if subscription.payments_made >= max {
                         subscription.status = SubscriptionStatus::Canceled;
-                        self.subscriptions.insert(subscription_id.clone(), subscription);
-                        
+                        self.subscriptions
+                            .insert(subscription_id.clone(), subscription);
+
                         return PaymentResult {
                             success: false,
                             subscription_id,
@@ -338,13 +399,14 @@ impl Contract {
                         };
                     }
                 }
-                
+
                 // Verify end date
                 if let Some(end_date) = subscription.end_date {
                     if now >= end_date {
                         subscription.status = SubscriptionStatus::Canceled;
-                        self.subscriptions.insert(subscription_id.clone(), subscription);
-                        
+                        self.subscriptions
+                            .insert(subscription_id.clone(), subscription);
+
                         return PaymentResult {
                             success: false,
                             subscription_id,
@@ -354,17 +416,21 @@ impl Contract {
                         };
                     }
                 }
-                
+
                 // Process payment based on payment method
                 match subscription.payment_method {
                     PaymentMethod::Near => {
                         // Transfer NEAR to merchant
                         // Note: In a real implementation, this would use env::transfer_near or similar
-                        log!("Transferring {} NEAR to {}", subscription.amount.0, subscription.merchant_id);
-                        
+                        log!(
+                            "Transferring {} NEAR to {}",
+                            subscription.amount.0,
+                            subscription.merchant_id
+                        );
+
                         // Update subscription
                         subscription.payments_made += 1;
-                        
+
                         // Calculate next payment date
                         subscription.next_payment_date = match subscription.frequency {
                             SubscriptionFrequency::Daily => now + 86400,
@@ -373,12 +439,13 @@ impl Contract {
                             SubscriptionFrequency::Quarterly => now + 7776000,
                             SubscriptionFrequency::Yearly => now + 31536000,
                         };
-                        
+
                         subscription.updated_at = now;
-                        
+
                         // Store updated subscription
-                        self.subscriptions.insert(subscription_id.clone(), subscription);
-                        
+                        self.subscriptions
+                            .insert(subscription_id.clone(), subscription);
+
                         PaymentResult {
                             success: true,
                             subscription_id,
@@ -386,18 +453,19 @@ impl Contract {
                             timestamp: now,
                             error: None,
                         }
-                    },
+                    }
                     PaymentMethod::Ft { token_id } => {
                         // In a real implementation, this would use cross-contract calls to transfer tokens
-                        log!("Transferring {} tokens from {} to {}", 
-                            subscription.amount.0, 
+                        log!(
+                            "Transferring {} tokens from {} to {}",
+                            subscription.amount.0,
                             token_id,
                             subscription.merchant_id
                         );
-                        
+
                         // Update subscription
                         subscription.payments_made += 1;
-                        
+
                         // Calculate next payment date
                         subscription.next_payment_date = match subscription.frequency {
                             SubscriptionFrequency::Daily => now + 86400,
@@ -406,12 +474,13 @@ impl Contract {
                             SubscriptionFrequency::Quarterly => now + 7776000,
                             SubscriptionFrequency::Yearly => now + 31536000,
                         };
-                        
+
                         subscription.updated_at = now;
-                        
+
                         // Store updated subscription
-                        self.subscriptions.insert(subscription_id.clone(), subscription_clone.clone());
-                        
+                        self.subscriptions
+                            .insert(subscription_id.clone(), subscription_clone.clone());
+
                         PaymentResult {
                             success: true,
                             subscription_id,
@@ -419,9 +488,9 @@ impl Contract {
                             timestamp: now,
                             error: None,
                         }
-                    },
+                    }
                 }
-            },
+            }
             _ => {
                 // Key is not authorized
                 PaymentResult {
@@ -434,30 +503,34 @@ impl Contract {
             }
         }
     }
-    
+
     /// Gets a list of subscriptions that are due for payment
     pub fn get_due_subscriptions(&self, limit: u64) -> Vec<Subscription> {
         let now = env::block_timestamp() / 1000000000;
         let mut due_subscriptions = Vec::new();
         let mut count = 0;
-        
+
         // Verify caller is an approved worker
         let worker = self.get_worker(env::predecessor_account_id());
-        require!(self.approved_codehashes.contains(&worker.codehash.clone()), "Not an approved worker");
-        
+        require!(
+            self.approved_codehashes.contains(&worker.codehash.clone()),
+            "Not an approved worker"
+        );
+
         // Iterate through subscriptions to find due payments
         for (_, subscription) in self.subscriptions.iter() {
             if count >= limit {
                 break;
             }
-            
-            if matches!(subscription.status, SubscriptionStatus::Active) && 
-               subscription.next_payment_date <= now {
+
+            if matches!(subscription.status, SubscriptionStatus::Active)
+                && subscription.next_payment_date <= now
+            {
                 due_subscriptions.push(subscription.clone());
                 count += 1;
             }
         }
-        
+
         due_subscriptions
     }
 }
