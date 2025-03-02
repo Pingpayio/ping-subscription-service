@@ -184,8 +184,8 @@ NEXT_PUBLIC_contractId=[YOUR_PROTOCOL_NAME].[YOUR_NEAR_DEV_ACCOUNT_ID]
 1. Build and push your docker image:
    ```bash
    # Update docker:build and docker:push scripts in package.json first
-   bun run docker:build
-   bun run docker:push
+   yarn run docker:build
+   yarn run docker:push
    ```
 
 2. Update `docker-compose.yaml` with your docker hub account, repository name, and image hash

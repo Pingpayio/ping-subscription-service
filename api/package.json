@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/server.ts",
+    "dev": "yarn --watch src/server.ts",
     "build": "tsc",
-    "start": "NODE_ENV=production bun dist/server.js"
+    "start": "NODE_ENV=production yarn node dist/server.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",

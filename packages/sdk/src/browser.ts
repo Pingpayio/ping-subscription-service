@@ -47,7 +47,7 @@ export interface CreateSubscriptionParams {
 }
 
 /**
- * Subscription SDK for interacting with the NEAR subscription service
+ * Subscription SDK for interacting with the Ping Subscription Service
  * Browser-compatible version
  */
 export class SubscriptionSDK {
