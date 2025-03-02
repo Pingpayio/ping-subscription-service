@@ -1,10 +1,10 @@
 /**
  * NEAR Subscription Service SDK
- * 
+ *
  * This SDK provides methods to interact with the NEAR Subscription Service.
  */
 
-import { contractCall, contractView } from '../utils/near-provider.js';
+import { contractCall, contractView } from "../utils/near-provider.js";
 
 /**
  * SubscriptionSDK class for interacting with the NEAR Subscription Service
@@ -16,7 +16,7 @@ export class SubscriptionSDK {
    * @param {string} options.apiUrl - The URL of the API server
    */
   constructor(options = {}) {
-    this.apiUrl = options.apiUrl || 'http://localhost:3000';
+    this.apiUrl = options.apiUrl || "http://localhost:3000";
   }
 
   /**
@@ -71,12 +71,12 @@ export class SubscriptionSDK {
    */
   async createSubscription(params) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'create',
+        action: "create",
         ...params,
       }),
     });
@@ -90,12 +90,12 @@ export class SubscriptionSDK {
    */
   async getSubscription(subscriptionId) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'get',
+        action: "get",
         subscriptionId,
       }),
     });
@@ -109,12 +109,12 @@ export class SubscriptionSDK {
    */
   async getUserSubscriptions(accountId) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'list',
+        action: "list",
         accountId,
       }),
     });
@@ -128,12 +128,12 @@ export class SubscriptionSDK {
    */
   async pauseSubscription(subscriptionId) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'pause',
+        action: "pause",
         subscriptionId,
       }),
     });
@@ -147,12 +147,12 @@ export class SubscriptionSDK {
    */
   async resumeSubscription(subscriptionId) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'resume',
+        action: "resume",
         subscriptionId,
       }),
     });
@@ -166,12 +166,12 @@ export class SubscriptionSDK {
    */
   async cancelSubscription(subscriptionId) {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'cancel',
+        action: "cancel",
         subscriptionId,
       }),
     });
@@ -185,12 +185,12 @@ export class SubscriptionSDK {
    */
   async startMonitoring(interval = 60000) {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'start',
+        action: "start",
         interval,
       }),
     });
@@ -203,12 +203,12 @@ export class SubscriptionSDK {
    */
   async stopMonitoring() {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'stop',
+        action: "stop",
       }),
     });
     return await response.json();
@@ -220,12 +220,12 @@ export class SubscriptionSDK {
    */
   async getMonitoringStatus() {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'status',
+        action: "status",
       }),
     });
     return await response.json();

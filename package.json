@@ -1,26 +1,29 @@
 {
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
-        "dev:api": "cd api && bun --watch server.js",
-        "dev:frontend": "cd frontend && bun run dev",
-        "build": "concurrently \"npm run build:frontend\" \"npm run build:sdk\"",
-        "build:frontend": "cd frontend && bun run build",
-        "build:sdk": "cd sdk && npm pack",
-        "start": "cd api && NODE_ENV=production bun server.js",
-        "test:contract": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
-        "tappd:run": "sudo docker run --rm -p 8090:8090 phalanetwork/tappd-simulator:latest",
-        "port:kill": "sudo fuser -k 3000/tcp",
-        "docker:build": "sudo docker build --no-cache --target dev -t ping-subscription-service:latest .",
-        "docker:run": "sudo docker run --rm -p 3000:3000 ping-subscription-service:latest",
-        "docker:image": "sudo docker build --no-cache --target prod -t elliotbraem/ping-subscription-service:latest .",
-        "docker:push": "sudo docker push elliotbraem/ping-subscription-service",
-        "docker:prune": "sudo docker system prune",
-        "setup": "concurrently \"cd api && bun install\" \"cd frontend && bun install\" \"cd sdk && npm install\""
-    },
-    "devDependencies": {
-        "concurrently": "^9.1.2",
-        "ava": "^6.1.3"
-    }
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
+    "dev:api": "cd api && bun --watch server.js",
+    "dev:frontend": "cd frontend && bun run dev",
+    "build": "concurrently \"npm run build:frontend\" \"npm run build:sdk\"",
+    "build:frontend": "cd frontend && bun run build",
+    "build:sdk": "cd sdk && npm pack",
+    "start": "cd api && NODE_ENV=production bun server.js",
+    "test:contract": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
+    "tappd:run": "sudo docker run --rm -p 8090:8090 phalanetwork/tappd-simulator:latest",
+    "port:kill": "sudo fuser -k 3000/tcp",
+    "docker:build": "sudo docker build --no-cache --target dev -t ping-subscription-service:latest .",
+    "docker:run": "sudo docker run --rm -p 3000:3000 ping-subscription-service:latest",
+    "docker:image": "sudo docker build --no-cache --target prod -t elliotbraem/ping-subscription-service:latest .",
+    "docker:push": "sudo docker push elliotbraem/ping-subscription-service",
+    "docker:prune": "sudo docker system prune",
+    "setup": "concurrently \"cd api && bun install\" \"cd frontend && bun install\" \"cd sdk && npm install\"",
+    "fmt": "prettier --write '**/*.{js,jsx,ts,tsx,json}'",
+    "fmt:check": "prettier --check '**/*.{js,jsx,ts,tsx,json}'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "ava": "^6.1.3",
+    "prettier": "^3.5.0"
+  }
 }
