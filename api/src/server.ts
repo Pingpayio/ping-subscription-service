@@ -20,7 +20,8 @@ import {
   getImplicit,
   setKey,
   TappdClient,
-  shadeAgent
+  shadeAgent,
+  getBalance
 } from "@ping-subscription/sdk";
 import { WorkerStatus, Subscription } from "@ping-subscription/types";
 
@@ -204,6 +205,23 @@ app.get("/api/isVerified", async (c: any) => {
   }
 
   return c.json({ verified } as WorkerStatus);
+});
+
+// Balance endpoint
+app.get("/api/balance", async (c: any) => {
+  try {
+    const accountId = c.req.query("accountId");
+    
+    if (!accountId) {
+      return c.json({ error: "Account ID is required" }, 400);
+    }
+    
+    const balance = await getBalance(accountId);
+    return c.json(balance);
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return c.json({ error: (error as Error).message }, 500);
+  }
 });
 
 // Monitor endpoint

@@ -72,6 +72,20 @@ export class SubscriptionSDK {
   }
 
   /**
+   * Get account balance
+   * @param accountId Account ID to check balance for
+   * @returns Account balance information
+   */
+  async getBalance(accountId: string): Promise<{ available: string }> {
+    const response = await fetch(`${this.apiUrl}/api/balance?accountId=${encodeURIComponent(accountId)}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error(errorData.error || `Failed to fetch balance: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  /**
    * Check if the worker is verified
    * @returns Whether the worker is verified
    */

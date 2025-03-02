@@ -1,7 +1,8 @@
 import SubscriptionSDK from "@ping-subscription/sdk/dist/browser";
 
-// Initialize the SDK
-const sdk = new SubscriptionSDK();
+// Initialize the SDK with the current origin as the API URL
+const apiUrl = window.location.origin;
+const sdk = new SubscriptionSDK({ apiUrl });
 
 // DOM Elements
 const accountIdElement = document.getElementById("accountId");
@@ -69,9 +70,8 @@ const getBalance = async (accountId) => {
   try {
     balanceElement.classList.add("loading");
 
-    // In a real implementation, we would call an API endpoint to get the balance
-    // For now, we'll simulate this with a placeholder
-    const balance = { available: "1000000000000000000000000" }; // 1 NEAR for testing
+    // Use the SDK to get the real balance
+    const balance = await sdk.getBalance(accountId);
 
     balanceElement.textContent = formatNearAmount(balance.available, 4);
     balanceElement.classList.remove("loading");
@@ -90,6 +90,7 @@ const getBalance = async (accountId) => {
     console.error("Error getting balance:", error);
     balanceElement.textContent = "Error";
     balanceElement.classList.remove("loading");
+    balanceElement.classList.add("status-error");
   }
 };
 
@@ -97,6 +98,7 @@ const registerWorker = async () => {
   try {
     await setMessage(
       '<p class="text-lg font-bold mb-2">Registering Worker</p><p class="loading">Please wait</p>',
+      0
     );
 
     const registered = await sdk.registerWorker();
@@ -112,12 +114,27 @@ const registerWorker = async () => {
     await checkWorkerVerification();
   } catch (error) {
     console.error("Error registering worker:", error);
+    
+    // Improved error handling with more detailed error message
+    let errorMessage = error.message || "Unknown error occurred";
+    
+    // Check if it's a network error
+    if (error.name === 'TypeError' && errorMessage.includes('Failed to fetch')) {
+      errorMessage = "Network error: Unable to connect to the server. Please check your connection and try again.";
+    }
+    
+    // Check if it's a server error (500)
+    if (errorMessage.includes('500')) {
+      errorMessage = "Server error: The server encountered an internal error. This could be due to TEE operations or contract interaction issues.";
+    }
+    
     await setMessage(
       `
-      <p class="text-lg font-bold mb-2 text-red-600">Error</p>
-      <p>${error.message}</p>
+      <p class="text-lg font-bold mb-2 text-red-600">Registration Error</p>
+      <p>${errorMessage}</p>
+      <p class="mt-2 text-sm">Please try again or contact support if the issue persists.</p>
     `,
-      3000,
+      5000,
     );
   }
 };
