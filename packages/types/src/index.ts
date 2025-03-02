@@ -12,6 +12,8 @@ export enum SubscriptionStatus {
  * Subscription frequency enum
  */
 export enum SubscriptionFrequency {
+  MINUTE = "MINUTE",
+  HOURLY = "HOURLY",
   DAILY = "DAILY",
   WEEKLY = "WEEKLY",
   MONTHLY = "MONTHLY",
@@ -23,70 +25,69 @@ export enum SubscriptionFrequency {
  * Payment method enum
  */
 export enum PaymentMethod {
-  NEAR = "NEAR",
-  FT = "FT"
+  NEAR = "NEAR"
 }
 
 /**
  * Subscription interface
  */
 export interface Subscription {
-  ID: string;
-  USER_ID: string;
-  MERCHANT_ID: string;
-  AMOUNT: string;
-  FREQUENCY: SubscriptionFrequency;
-  NEXT_PAYMENT_DATE: number;
-  STATUS: SubscriptionStatus;
-  CREATED_AT: number;
-  UPDATED_AT: number;
-  PAYMENT_METHOD: PaymentMethod;
-  MAX_PAYMENTS?: number;
-  PAYMENTS_MADE: number;
-  END_DATE?: number;
-  TOKEN_ADDRESS?: string;
+  id: string;
+  userId: string;
+  merchantId: string;
+  amount: string;
+  frequency: SubscriptionFrequency;
+  nextPaymentDate: string; // ISO date string
+  status: SubscriptionStatus;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  paymentMethod: PaymentMethod;
+  maxPayments?: number;
+  paymentsMade: number;
+  endDate?: string; // ISO date string
+  tokenAddress?: string;
 }
 
 /**
  * Worker status interface
  */
 export interface WorkerStatus {
-  ACCOUNT_ID?: string;
-  REGISTERED?: boolean;
-  VERIFIED?: boolean;
+  accountId?: string;
+  registered?: boolean;
+  verified?: boolean;
 }
 
 /**
  * Merchant interface
  */
 export interface Merchant {
-  ID: string;
-  NAME: string;
-  OWNER_ID: string;
-  CREATED_AT: number;
-  UPDATED_AT: number;
-  ACTIVE: boolean;
+  id: string;
+  name: string;
+  ownerId: string;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  active: boolean;
 }
 
 /**
  * Payment result interface
  */
 export interface PaymentResult {
-  SUCCESS: boolean;
-  ERROR?: string;
-  TRANSACTION_HASH?: string;
-  AMOUNT?: string;
-  TIMESTAMP?: number;
+  success: boolean;
+  error?: string;
+  transactionHash?: string;
+  amount?: string;
+  timestamp?: string; // ISO date string
 }
 
 /**
  * Monitoring status interface
  */
 export interface MonitoringStatus {
-  IS_MONITORING: boolean;
-  PROCESSING_QUEUE?: {
-    ID: string;
-    STATUS: "PROCESSING" | "RETRYING";
-    RETRY_COUNT: number;
+  isMonitoring: boolean;
+  processingQueue?: {
+    id: string;
+    status: "PROCESSING" | "RETRYING";
+    retryCount: number;
   }[];
 }

@@ -9,33 +9,31 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package.json files for all components
-COPY package.json ./
+COPY package.json .yarnrc.yml yarn.lock ./
 COPY api/package.json ./api/
 COPY frontend/package.json ./frontend/
-COPY sdk/package.json ./sdk/
+COPY packages/sdk/package.json ./packages/sdk/
+COPY packages/types/package.json ./packages/types/
 
-# Install dependencies for all components
-RUN npm install
-RUN cd api && npm install
-RUN cd frontend && npm install
-RUN cd sdk && npm install
+# Install dependencies using yarn workspaces
+RUN corepack enable
+RUN yarn install
 
 # Build the SDK and frontend
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/api/node_modules ./api/node_modules
-COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
-COPY --from=deps /app/sdk/node_modules ./sdk/node_modules
+COPY --from=deps /app/.yarn ./.yarn
+COPY --from=deps /app/.yarnrc.yml ./
+COPY --from=deps /app/yarn.lock ./
 
 # Copy source code
 COPY . .
 
-# Build the SDK
-RUN cd sdk && npm pack
-
-# Build the frontend
-RUN cd frontend && npm run build
+# Build everything using the scripts from package.json
+# This ensures correct build order: types -> sdk -> api & frontend
+RUN corepack enable
+RUN yarn build
 
 # Production image, copy all the files and run the server
 FROM base AS runner
@@ -43,16 +41,14 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Enable corepack for yarn version management
+RUN corepack enable
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 appuser
 
-# Copy necessary files
-COPY --from=builder /app/frontend/dist ./dist
-COPY --from=builder /app/frontend/public ./frontend/public
-COPY --from=builder /app/api/server.js ./server.js
-COPY --from=builder /app/utils ./utils
-COPY --from=builder /app/api/package.json ./package.json
-COPY --from=deps /app/api/node_modules ./node_modules
+# Copy the entire app directory structure to maintain workspace relationships
+COPY --from=builder /app .
 
 USER appuser
 
@@ -62,7 +58,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Start the server
-CMD ["node", "server.js"]
+CMD ["yarn", "start"]
 
 FROM runner AS prod
 
