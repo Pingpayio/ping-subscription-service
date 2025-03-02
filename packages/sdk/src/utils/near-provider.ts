@@ -24,7 +24,7 @@ let _accountId = process.env.NEXT_PUBLIC_accountId;
 
 export const contractId = _contractId;
 
-const networkId = /testnet/gi.test(contractId) ? "testnet" : "mainnet";
+const networkId = /testnet/gi.test(contractId || '') ? "testnet" : "mainnet";
 const keyStore = new keyStores.InMemoryKeyStore();
 const config =
   networkId === "testnet"
@@ -46,11 +46,11 @@ const near = new Near(config);
 const { connection } = near;
 const { provider } = connection;
 const gas = BigInt("300000000000000");
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // helpers
 
-export const setKey = (accountId, secretKey) => {
+export const setKey = (accountId: string, secretKey: string): void => {
   if (!accountId || !secretKey) return;
   _accountId = accountId;
   const keyPair = KeyPair.fromString(secretKey);
@@ -59,27 +59,27 @@ export const setKey = (accountId, secretKey) => {
 };
 // .env.development.local - automatically set key to dev account
 if (secretKey) {
-  setKey(_accountId, secretKey);
+  setKey(_accountId || '', secretKey);
 }
 // .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
 // process.env.NEXT_PUBLIC_secretKey not set in production
-export const getDevAccountKeyPair = () => {
-  const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey);
-  keyStore.setKey(networkId, contractId, keyPair);
+export const getDevAccountKeyPair = (): nearAPI.KeyPair => {
+  const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey || '');
+  keyStore.setKey(networkId, contractId || '', keyPair);
   return keyPair;
 };
 
-export const getImplicit = (pubKeyStr) =>
+export const getImplicit = (pubKeyStr: string): string =>
   Buffer.from(PublicKey.from(pubKeyStr).data).toString("hex").toLowerCase();
 
-export const getAccount = (id = _accountId) => new Account(connection, id);
+export const getAccount = (id = _accountId): nearAPI.Account => new Account(connection, id || '');
 
-export const getBalance = async (accountId) => {
+export const getBalance = async (accountId: string): Promise<{ available: string }> => {
   let balance = { available: "0" };
   try {
     const account = getAccount(accountId);
     balance = await account.getAccountBalance();
-  } catch (e) {
+  } catch (e: any) {
     if (e.type === "AccountDoesNotExist") {
       console.log(e.type);
     } else {
@@ -91,23 +91,30 @@ export const getBalance = async (accountId) => {
 
 // contract interactions
 
-export const contractView = async ({
+interface ViewFunctionParams {
+  accountId?: string;
+  contractId?: string;
+  methodName: string;
+  args?: Record<string, any>;
+}
+
+export const contractView = async <T = any>({
   accountId,
   contractId = _contractId,
   methodName,
   args = {},
-}) => {
+}: ViewFunctionParams): Promise<T> => {
   const account = getAccount(accountId);
 
   let res;
   try {
     res = await account.viewFunction({
-      contractId,
+      contractId: contractId || '',
       methodName,
       args,
       gas,
     });
-  } catch (e) {
+  } catch (e: any) {
     if (/deserialize/gi.test(JSON.stringify(e))) {
       console.log(`Bad arguments to ${methodName} method`);
     }
@@ -116,25 +123,33 @@ export const contractView = async ({
   return res;
 };
 
-export const contractCall = async ({
+interface FunctionCallParams {
+  accountId?: string;
+  contractId?: string;
+  methodName: string;
+  args: Record<string, any>;
+}
+
+export const contractCall = async <T = any>({
   accountId,
   contractId = _contractId,
   methodName,
   args,
-}) => {
+}: FunctionCallParams): Promise<T> => {
   const account = getAccount(accountId);
   let res;
   try {
     res = await account.functionCall({
-      contractId,
+      contractId: contractId || '',
       methodName,
       args,
       gas,
     });
-  } catch (e) {
+  } catch (e: any) {
     console.log(e);
     if (/deserialize/gi.test(JSON.stringify(e))) {
-      return console.log(`Bad arguments to ${methodName} method`);
+      console.log(`Bad arguments to ${methodName} method`);
+      return {} as T;
     }
     if (e.context?.transactionHash) {
       const maxPings = 30;
@@ -156,14 +171,14 @@ export const contractCall = async ({
           `Request status polling exited before desired outcome.\n  Current status: ${res.final_execution_status}\nSignature Request will likley fail.`,
         );
       }
-      return parseSuccessValue(res);
+      return parseSuccessValue(res) as T;
     }
     throw e;
   }
-  return parseSuccessValue(res);
+  return parseSuccessValue(res) as T;
 };
 
-const parseSuccessValue = (transaction) => {
+const parseSuccessValue = (transaction: any): any => {
   if (transaction.status.SuccessValue.length === 0) return;
 
   try {

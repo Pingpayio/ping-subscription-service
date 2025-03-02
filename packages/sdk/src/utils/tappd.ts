@@ -4,17 +4,21 @@ import http from "http";
 import https from "https";
 import { URL } from "url";
 
-export function to_hex(data) {
+export function to_hex(data: string | Uint8Array | NodeJS.ArrayBufferView): string {
   if (typeof data === "string") {
     return Buffer.from(data).toString("hex");
   }
   if (data instanceof Uint8Array) {
     return Buffer.from(data).toString("hex");
   }
-  return data.toString("hex");
+  if (Buffer.isBuffer(data)) {
+    return data.toString("hex");
+  }
+  // Convert other ArrayBufferView types to Buffer
+  return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("hex");
 }
 
-function x509key_to_uint8array(pem, max_length) {
+function x509key_to_uint8array(pem: string, max_length?: number): Uint8Array {
   const content = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -30,7 +34,7 @@ function x509key_to_uint8array(pem, max_length) {
   return result;
 }
 
-function replay_rtmr(history) {
+function replay_rtmr(history: string[]): string {
   const INIT_MR =
     "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
   if (history.length === 0) {
@@ -45,6 +49,7 @@ function replay_rtmr(history) {
       const padding = Buffer.alloc(48 - contentBuffer.length, 0);
       contentBuffer = Buffer.concat([contentBuffer, padding]);
     }
+    // @ts-ignore Buffer type compatibility issue
     mr = crypto
       .createHash("sha384")
       .update(Buffer.concat([mr, contentBuffer]))
@@ -53,8 +58,13 @@ function replay_rtmr(history) {
   return mr.toString("hex");
 }
 
-function reply_rtmrs(event_log) {
-  const rtmrs = [];
+interface EventLogEntry {
+  imr: number;
+  digest: string;
+}
+
+function reply_rtmrs(event_log: EventLogEntry[]): string[] {
+  const rtmrs: string[] = [];
   for (let idx = 0; idx < 4; idx++) {
     const history = event_log
       .filter((event) => event.imr === idx)
@@ -64,7 +74,7 @@ function reply_rtmrs(event_log) {
   return rtmrs;
 }
 
-export function send_rpc_request(endpoint, path, payload) {
+export function send_rpc_request(endpoint: string, path: string, payload: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const abortController = new AbortController();
     const timeout = setTimeout(() => {
@@ -128,7 +138,7 @@ export function send_rpc_request(endpoint, path, payload) {
       });
 
       let data = "";
-      let headers = {};
+      let headers: Record<string, string> = {};
       let headersParsed = false;
       let contentLength = 0;
       let bodyData = "";
@@ -181,7 +191,20 @@ export function send_rpc_request(endpoint, path, payload) {
   });
 }
 
+interface DeriveKeyResult {
+  key: string;
+  asUint8Array: (length?: number) => Uint8Array;
+}
+
+interface TdxQuoteResult {
+  quote: string;
+  event_log: string;
+  replayRtmrs: () => string[];
+}
+
 export class TappdClient {
+  private endpoint: string;
+
   constructor(endpoint = "/var/run/tappd.sock") {
     if (process.env.DSTACK_SIMULATOR_ENDPOINT) {
       console.debug(
@@ -192,7 +215,7 @@ export class TappdClient {
     this.endpoint = endpoint;
   }
 
-  async getInfo() {
+  async getInfo(): Promise<{ tcb_info: string }> {
     const result = await send_rpc_request(
       this.endpoint,
       "/prpc/Tappd.Info",
@@ -202,8 +225,8 @@ export class TappdClient {
     return result;
   }
 
-  async deriveKey(path, subject, alt_names) {
-    let raw = {
+  async deriveKey(path: string, subject: string, alt_names?: string[]): Promise<DeriveKeyResult> {
+    let raw: Record<string, any> = {
       path: path || "",
       subject: subject || path || "",
     };
@@ -218,12 +241,12 @@ export class TappdClient {
     );
 
     // Add asUint8Array method to the result
-    result.asUint8Array = (length) => x509key_to_uint8array(result.key, length);
+    result.asUint8Array = (length?: number) => x509key_to_uint8array(result.key, length);
 
     return Object.freeze(result);
   }
 
-  async tdxQuote(report_data, hash_algorithm) {
+  async tdxQuote(report_data: string, hash_algorithm?: string): Promise<TdxQuoteResult> {
     let hex = to_hex(report_data);
     if (hash_algorithm === "raw") {
       if (hex.length > 128) {

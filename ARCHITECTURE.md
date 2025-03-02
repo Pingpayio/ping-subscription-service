@@ -22,7 +22,23 @@ A Worker Agent running in a TEE on Phala Cloud that:
 - Signs and submits payment transactions
 - Handles payment failures and retries
 
-### 3. User Interface
+### 3. TypeScript SDK
+
+A TypeScript SDK that provides:
+- Easy integration with the subscription service
+- Type-safe API for creating and managing subscriptions
+- Methods for monitoring subscription status
+- Utilities for interacting with the NEAR blockchain
+
+### 4. TypeScript Types Package
+
+A shared types package that:
+- Defines common interfaces and types used across the project
+- Ensures type consistency between the SDK and API
+- Provides type safety for subscription data structures
+- Enables better developer experience with autocomplete and type checking
+
+### 5. User Interface
 
 A web application that allows users to:
 - Create and manage subscriptions

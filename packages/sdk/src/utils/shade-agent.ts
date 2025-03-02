@@ -1,8 +1,30 @@
 import { TappdClient } from "./tappd.js";
-import { contractCall, contractView } from "./near-provider.js";
+import { contractCall, contractView, contractId as _contractId } from "./near-provider.js";
+// Use a default account ID if not provided
+const _accountId = process.env.NEXT_PUBLIC_accountId || "test.near";
 import { generateSeedPhrase } from "near-seed-phrase";
 import * as nearAPI from "near-api-js";
 const { KeyPair } = nearAPI;
+
+interface KeyPair {
+  privateKey: string;
+  publicKey: string;
+}
+
+interface ProcessingStatus {
+  status: 'processing' | 'retrying';
+  retryCount: number;
+}
+
+interface Subscription {
+  id: string;
+  [key: string]: any;
+}
+
+interface PaymentResult {
+  success: boolean;
+  error?: string;
+}
 
 /**
  * Shade Agent class for managing subscriptions and processing payments
@@ -13,18 +35,27 @@ const { KeyPair } = nearAPI;
  * - Error handling and retries
  */
 export class ShadeAgent {
+  private client: TappdClient;
+  private subscriptionKeys: Map<string, KeyPair>;
+  public processingQueue: Map<string, ProcessingStatus>;
+  private retryDelays: number[];
+  public isMonitoring: boolean;
+  public isInitialized: boolean;
+  private monitoringInterval?: NodeJS.Timeout;
+
   constructor(endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT) {
     this.client = new TappdClient(endpoint);
     this.subscriptionKeys = new Map(); // Map of subscriptionId -> { privateKey, publicKey }
     this.processingQueue = new Map(); // Map of subscriptionId -> processing status
     this.retryDelays = [5000, 15000, 30000, 60000]; // Retry delays in ms (5s, 15s, 30s, 1m)
     this.isMonitoring = false;
+    this.isInitialized = false;
   }
 
   /**
    * Initialize the agent
    */
-  async initialize() {
+  async initialize(): Promise<void> {
     // Verify the agent is running in a TEE
     if (process.env.NODE_ENV !== "production") {
       console.log(
@@ -39,7 +70,7 @@ export class ShadeAgent {
   /**
    * Verify the agent with the contract
    */
-  async verifyAgent() {
+  async verifyAgent(): Promise<boolean> {
     try {
       // Get TCB info from tappd
       const { tcb_info } = await this.client.getInfo();
@@ -49,6 +80,7 @@ export class ShadeAgent {
 
       // Verify the agent with the contract
       await contractCall({
+        accountId: _accountId,
         methodName: "is_verified_by_codehash",
         args: { codehash },
       });
@@ -67,10 +99,10 @@ export class ShadeAgent {
    * @param {string} seed - Optional seed for deterministic key generation
    * @returns {Object} - The generated key pair { privateKey, publicKey }
    */
-  async generateKeyPair(subscriptionId, seed) {
+  async generateKeyPair(subscriptionId: string, seed?: string): Promise<KeyPair> {
     try {
       // Generate entropy from TEE hardware if in production
-      let entropy;
+      let entropy: Buffer;
       if (process.env.NODE_ENV === "production") {
         // Get entropy from TEE hardware
         const randomString = Math.random().toString();
@@ -84,14 +116,16 @@ export class ShadeAgent {
         crypto.getRandomValues(randomArray);
 
         // Combine TEE entropy with subscription ID for uniqueness
-        entropy = await crypto.subtle.digest(
+        const hashBuffer = await crypto.subtle.digest(
           "SHA-256",
           Buffer.concat([
-            randomArray,
-            keyFromTee.asUint8Array(32),
+            Buffer.from(randomArray),
+            Buffer.from(keyFromTee.asUint8Array(32)),
             Buffer.from(subscriptionId),
           ]),
         );
+        
+        entropy = Buffer.from(new Uint8Array(hashBuffer));
       } else {
         // In development, use a deterministic seed if provided, or generate a random one
         entropy = seed
@@ -123,9 +157,10 @@ export class ShadeAgent {
    * @param {string} subscriptionId - The subscription ID
    * @param {string} publicKey - The public key to register
    */
-  async registerSubscriptionKey(subscriptionId, publicKey) {
+  async registerSubscriptionKey(subscriptionId: string, publicKey: string): Promise<boolean> {
     try {
       await contractCall({
+        accountId: _accountId,
         methodName: "register_subscription_key",
         args: {
           public_key: publicKey,
@@ -149,7 +184,7 @@ export class ShadeAgent {
    * @param {string} subscriptionId - The subscription ID
    * @returns {Object|null} - The key pair { privateKey, publicKey } or null if not found
    */
-  getKeyPair(subscriptionId) {
+  getKeyPair(subscriptionId: string): KeyPair | null {
     return this.subscriptionKeys.get(subscriptionId) || null;
   }
 
@@ -159,7 +194,7 @@ export class ShadeAgent {
    * @param {string} privateKey - The private key
    * @param {string} publicKey - The public key
    */
-  storeKeyPair(subscriptionId, privateKey, publicKey) {
+  storeKeyPair(subscriptionId: string, privateKey: string, publicKey: string): void {
     this.subscriptionKeys.set(subscriptionId, { privateKey, publicKey });
   }
 
@@ -167,7 +202,7 @@ export class ShadeAgent {
    * Start monitoring subscriptions for due payments
    * @param {number} interval - The monitoring interval in milliseconds
    */
-  async startMonitoring(interval = 60000) {
+  async startMonitoring(interval = 60000): Promise<void> {
     if (this.isMonitoring) {
       console.log("Monitoring already started");
       return;
@@ -188,13 +223,15 @@ export class ShadeAgent {
   /**
    * Stop monitoring subscriptions
    */
-  stopMonitoring() {
+  stopMonitoring(): void {
     if (!this.isMonitoring) {
       console.log("Monitoring not started");
       return;
     }
 
-    clearInterval(this.monitoringInterval);
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
     this.isMonitoring = false;
     console.log("Stopped subscription monitoring");
   }
@@ -203,13 +240,14 @@ export class ShadeAgent {
    * Check for subscriptions with due payments
    * @param {number} limit - Maximum number of subscriptions to process at once
    */
-  async checkDueSubscriptions(limit = 10) {
+  async checkDueSubscriptions(limit = 10): Promise<void> {
     try {
       // Get due subscriptions from the contract
       const dueSubscriptions = await contractView({
+        accountId: _accountId,
         methodName: "get_due_subscriptions",
         args: { limit },
-      });
+      }) as Subscription[];
 
       console.log(`Found ${dueSubscriptions.length} due subscriptions`);
 
@@ -236,7 +274,7 @@ export class ShadeAgent {
    * @param {Object} subscription - The subscription object
    * @param {number} retryCount - The current retry count
    */
-  async processPayment(subscription, retryCount = 0) {
+  async processPayment(subscription: Subscription, retryCount = 0): Promise<void> {
     const subscriptionId = subscription.id;
 
     // Mark as processing
@@ -264,13 +302,18 @@ export class ShadeAgent {
 
       // Create a KeyPair object from the private key
       const nearKeyPair = KeyPair.fromString(keyPair.privateKey);
+      
+      // Set the key in the keystore for this account
+      // This is needed because contractCall will use the key from the keystore
+      const { setKey } = await import('./near-provider.js');
+      setKey(_accountId, keyPair.privateKey);
 
       // Call the contract to process the payment
       const result = await contractCall({
+        accountId: _accountId,
         methodName: "process_payment",
         args: { subscription_id: subscriptionId },
-        keyPair: nearKeyPair,
-      });
+      }) as PaymentResult;
 
       // Check if payment was successful
       if (result && result.success) {
@@ -332,7 +375,7 @@ export class ShadeAgent {
    * @param {Object} subscription - The subscription object
    * @param {number} retryCount - The current retry count
    */
-  retryPayment(subscription, retryCount) {
+  retryPayment(subscription: Subscription, retryCount: number): void {
     const subscriptionId = subscription.id;
 
     // Check if we've reached the maximum retry count

@@ -1,0 +1,25 @@
+{
+  "name": "@ping-subscription/types",
+  "version": "0.1.0",
+  "description": "TypeScript types for Ping Subscription Service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "near",
+    "subscription",
+    "types"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.2"
+  },
+  "files": [
+    "dist"
+  ]
+}

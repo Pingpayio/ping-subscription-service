@@ -1,5 +1,5 @@
 {
-  "name": "near-subscription-frontend",
+  "name": "@ping-subscription/frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,9 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "near-subscription-sdk": "file:../sdk"
+    "@ping-subscription/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@ping-subscription/types": "workspace:*",
     "@tailwindcss/postcss": "^4.0.9",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.3",

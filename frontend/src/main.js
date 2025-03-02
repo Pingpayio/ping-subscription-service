@@ -1,4 +1,4 @@
-import SubscriptionSDK from "near-subscription-sdk";
+import SubscriptionSDK from "@ping-subscription/sdk/dist/browser";
 
 // Initialize the SDK
 const sdk = new SubscriptionSDK();
