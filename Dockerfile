@@ -8,68 +8,65 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* .yarnrc.yml* ./
-RUN \
-  if [ -f yarn.lock ]; then corepack enable && yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# Copy package.json files for all components
+COPY package.json ./
+COPY api/package.json ./api/
+COPY frontend/package.json ./frontend/
+COPY sdk/package.json ./sdk/
 
+# Install dependencies for all components
+RUN npm install
+RUN cd api && npm install
+RUN cd frontend && npm install
+RUN cd sdk && npm install
 
-# Rebuild the source code only when needed
+# Build the SDK and frontend
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/api/node_modules ./api/node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+COPY --from=deps /app/sdk/node_modules ./sdk/node_modules
+
+# Copy source code
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED=1
+# Build the SDK
+RUN cd sdk && npm pack
 
-RUN \
-  if [ -f yarn.lock ]; then corepack enable && yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# Build the frontend
+RUN cd frontend && npm run build
 
-# Production image, copy all the files and run next
+# Production image, copy all the files and run the server
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 1001 appuser
 
-COPY --from=builder /app/public ./public
+# Copy necessary files
+COPY --from=builder /app/frontend/dist ./dist
+COPY --from=builder /app/frontend/public ./frontend/public
+COPY --from=builder /app/api/server.js ./server.js
+COPY --from=builder /app/utils ./utils
+COPY --from=builder /app/api/package.json ./package.json
+COPY --from=deps /app/api/node_modules ./node_modules
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+USER appuser
 
 EXPOSE 3000
 
 ENV PORT=3000
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 ENV HOSTNAME="0.0.0.0"
+
+# Start the server
 CMD ["node", "server.js"]
 
 FROM runner AS prod
 
-# build with dev vars only (use tappd sim)
+# Development image with tappd simulator endpoint
 FROM runner AS dev
 # ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
 ENV DSTACK_SIMULATOR_ENDPOINT="http://172.17.0.1:8090"
-
-

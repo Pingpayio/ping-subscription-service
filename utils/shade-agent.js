@@ -1,5 +1,5 @@
-import { TappdClient } from './tappd';
-import { contractCall, contractView } from './near-provider';
+import { TappdClient } from './tappd.js';
+import { contractCall, contractView } from './near-provider.js';
 import { generateSeedPhrase } from 'near-seed-phrase';
 import * as nearAPI from 'near-api-js';
 const { KeyPair } = nearAPI;

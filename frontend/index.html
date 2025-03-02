@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEAR Subscription Service</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="container mx-auto px-8 py-8 max-w-3xl">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-4">NEAR Subscription Service</h1>
+      <p class="text-gray-700">Secure, automated recurring payments using NEAR's Function Call Access Keys</p>
+    </header>
+
+    <main>
+      <section class="bg-white p-6 rounded shadow mb-6 border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4">Worker Agent Address</h2>
+        <div class="flex items-center mb-4">
+          <code id="accountId" class="bg-gray-100 p-3 rounded border border-gray-300 flex-grow overflow-x-auto">Loading...</code>
+          <button id="copyBtn" class="ml-4 bg-red-500 text-white px-4 py-2 rounded">Copy</button>
+        </div>
+        <p>Balance: <span id="balance" class="font-bold">0</span> NEAR</p>
+      </section>
+
+      <section id="actionSection" class="bg-white p-6 rounded shadow mb-6 border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4">Actions</h2>
+        <div id="actionButtons">
+          <!-- Action buttons will be added here dynamically -->
+          <p>Loading available actions...</p>
+        </div>
+      </section>
+
+      <section id="statusSection" class="bg-white p-6 rounded shadow border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4">Status</h2>
+        <div id="statusContent">
+          <p>Worker Status: <span id="workerStatus" class="font-bold">Checking...</span></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-8 text-center text-gray-600 text-sm">
+      <p>NEAR Subscription Service &copy; 2025</p>
+    </footer>
+  </div>
+
+  <!-- Overlay for messages -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div id="message" class="bg-white p-6 rounded shadow-lg max-w-md">
+      <!-- Message content will be added here dynamically -->
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

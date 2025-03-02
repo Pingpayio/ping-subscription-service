@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Simple button press effect */
+button {
+  transition: all 0.1s;
+}
+
+button:active {
+  transform: translateY(2px);
+}
+
+/* Code block */
+code {
+  word-break: break-all;
+}
+
+/* Animated loading dots */
+.loading:after {
+  content: '.';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60% { content: '...'; }
+  80%, 100% { content: ''; }
+}
+
+/* Status indicators */
+.status-verified {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.status-unverified {
+  background-color: #fff9c4;
+  color: #f57f17;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.status-error {
+  background-color: #ffcdd2;
+  color: #c62828;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "near-subscription-sdk",
+  "version": "0.1.0",
+  "description": "SDK for interacting with the NEAR Subscription Service",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "near",
+    "subscription",
+    "blockchain",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "near-api-js": "^5.0.1"
+  }
+}
