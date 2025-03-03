@@ -27,17 +27,18 @@ if (process.env.CONTRACT_ID) {
   setContractId(process.env.CONTRACT_ID);
   console.log(`SDK initialized with contract: ${process.env.CONTRACT_ID}`);
 } else {
-  console.warn("Missing CONTRACT_ID environment variable. SDK not fully initialized.");
+  console.warn(
+    "Missing CONTRACT_ID environment variable. SDK not fully initialized.",
+  );
 }
 
 if (process.env.SIGNER_ID && process.env.SECRET_KEY) {
-  setKey(
-    process.env.SIGNER_ID,
-    process.env.SECRET_KEY
-  );
+  setKey(process.env.SIGNER_ID, process.env.SECRET_KEY);
   console.log(`SDK initialized with account: ${process.env.SIGNER_ID}`);
 } else {
-  console.warn("Missing SIGNER_ID or SECRET_KEY environment variables. SDK not fully initialized.");
+  console.warn(
+    "Missing SIGNER_ID or SECRET_KEY environment variables. SDK not fully initialized.",
+  );
 }
 
 // Create Hono app
@@ -45,14 +46,16 @@ const app = new Hono();
 
 // Middleware
 app.use(logger());
-app.use(cors({
-  origin: '*', // Allow requests from any origin
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
-  maxAge: 600,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "*", // Allow requests from any origin
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
 
 // Serve static files from the public directory
 app.get("/public/*", async (c: any) => {
