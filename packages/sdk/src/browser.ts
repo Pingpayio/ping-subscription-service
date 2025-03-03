@@ -123,10 +123,10 @@ export class SubscriptionSDK {
   }
 
   /**
-     * Start monitoring subscriptions
-     * @param interval Monitoring interval in milliseconds (default: 60000)
-     * @returns Operation result
-     */
+   * Start monitoring subscriptions
+   * @param interval Monitoring interval in milliseconds (default: 60000)
+   * @returns Operation result
+   */
   async startMonitoring(
     interval?: number,
   ): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
