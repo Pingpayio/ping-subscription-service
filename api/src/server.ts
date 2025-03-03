@@ -297,6 +297,43 @@ app.get("/api/merchants", async (c: any) => {
   }
 });
 
+// Keys endpoint for managing subscription keys
+app.post("/api/keys", async (c: any) => {
+  try {
+    const body = await c.req.json();
+    const { action, subscriptionId, privateKey, publicKey } = body;
+
+    switch (action) {
+      case "store": {
+        // Validate inputs
+        if (!subscriptionId || !privateKey || !publicKey) {
+          return c.json({ error: "Missing required parameters" }, 400);
+        }
+
+        // Store the key in the shade agent
+        const success = await shadeAgent.securelyStoreKey(
+          subscriptionId, 
+          privateKey,
+          publicKey
+        );
+
+        return c.json({
+          success,
+          message: success 
+            ? "Key stored successfully" 
+            : "Failed to store key",
+        });
+      }
+
+      default:
+        return c.json({ error: "Invalid action" }, 400);
+    }
+  } catch (error) {
+    console.error("Error handling key management request:", error);
+    return c.json({ error: (error as Error).message }, 500);
+  }
+});
+
 // Subscription endpoint
 app.post("/api/subscription", async (c: any) => {
   try {
@@ -322,6 +359,27 @@ app.post("/api/subscription", async (c: any) => {
         return c.json({
           success: true,
           subscriptionId: result.subscription_id,
+        });
+      }
+
+      case "registerKey": {
+        const { publicKey } = params;
+        
+        if (!subscriptionId || !publicKey) {
+          return c.json({ error: "Missing required parameters" }, 400);
+        }
+        
+        await contractCall({
+          methodName: "register_subscription_key",
+          args: { 
+            subscription_id: subscriptionId,
+            public_key: publicKey
+          },
+        });
+
+        return c.json({ 
+          success: true, 
+          message: "Subscription key registered" 
         });
       }
 

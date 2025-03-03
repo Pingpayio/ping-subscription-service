@@ -5,6 +5,9 @@ import {
   MonitoringStatus
 } from '@ping-subscription/types';
 
+import * as nearAPI from "near-api-js";
+const { KeyPair, utils } = nearAPI;
+
 export * from "./utils/collateral.js"
 export * from "./utils/near-provider.js"
 export * from "./utils/shade-agent.js"
@@ -119,6 +122,106 @@ export class SubscriptionSDK {
         frequency: params.frequency,
         maxPayments: params.maxPayments,
         tokenAddress: params.tokenAddress,
+      }),
+    });
+    return await response.json();
+  }
+
+  /**
+   * Create a function call access key for a subscription
+   * This generates a transaction that the user needs to sign to create the key
+   * @param accountId The user's account ID
+   * @param subscriptionId The subscription ID
+   * @param contractId The contract ID
+   * @param allowance The maximum allowance for the key (in yoctoNEAR)
+   * @returns The transaction to sign and the generated key pair
+   */
+  createSubscriptionKeyTransaction(
+    accountId: string,
+    subscriptionId: string,
+    contractId: string,
+    allowance: string = "250000000000000000000000" // 0.25 NEAR default
+  ): {
+    transaction: any;
+    keyPair: { publicKey: string; privateKey: string };
+  } {
+    // Generate a new key pair
+    const keyPair = KeyPair.fromRandom('ed25519');
+    const publicKey = keyPair.getPublicKey().toString();
+    const privateKey = keyPair.toString();
+
+    // Create a transaction to add the function call access key
+    // This will allow the key to only call the process_payment method on the contract
+    // with a specific allowance
+    const transaction = {
+      receiverId: accountId,
+      actions: [
+        {
+          type: 'AddKey',
+          params: {
+            publicKey: publicKey,
+            accessKey: {
+              nonce: 0,
+              permission: {
+                type: 'FunctionCall',
+                methodNames: ['process_payment'],
+                contractId: contractId,
+                allowance: allowance
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    return {
+      transaction,
+      keyPair: {
+        publicKey,
+        privateKey
+      }
+    };
+  }
+
+  /**
+   * Register a subscription key with the contract
+   * @param subscriptionId The subscription ID
+   * @param publicKey The public key to register
+   * @returns Operation result
+   */
+  async registerSubscriptionKey(subscriptionId: string, publicKey: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.apiUrl}/api/subscription`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'registerKey',
+        subscriptionId,
+        publicKey,
+      }),
+    });
+    return await response.json();
+  }
+
+  /**
+   * Store a private key for a subscription in the TEE
+   * @param subscriptionId The subscription ID
+   * @param privateKey The private key to store
+   * @param publicKey The public key
+   * @returns Operation result
+   */
+  async storeSubscriptionKey(subscriptionId: string, privateKey: string, publicKey: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.apiUrl}/api/keys`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'store',
+        subscriptionId,
+        privateKey,
+        publicKey,
       }),
     });
     return await response.json();

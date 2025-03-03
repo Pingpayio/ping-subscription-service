@@ -94,61 +94,36 @@ export class ShadeAgent {
   }
 
   /**
-   * Generate a key pair for a subscription
+   * Securely store a key pair for a subscription
    * @param {string} subscriptionId - The subscription ID
-   * @param {string} seed - Optional seed for deterministic key generation
-   * @returns {Object} - The generated key pair { privateKey, publicKey }
+   * @param {string} privateKey - The private key to store
+   * @param {string} publicKey - The public key
+   * @returns {boolean} - Whether the key was successfully stored
    */
-  async generateKeyPair(subscriptionId: string, seed?: string): Promise<KeyPair> {
+  async securelyStoreKey(subscriptionId: string, privateKey: string, publicKey: string): Promise<boolean> {
     try {
-      // Generate entropy from TEE hardware if in production
-      let entropy: Buffer;
+      // In production, use TEE's secure storage capabilities
       if (process.env.NODE_ENV === "production") {
-        // Get entropy from TEE hardware
-        const randomString = Math.random().toString();
-        const keyFromTee = await this.client.deriveKey(
-          randomString,
-          randomString,
-        );
-
-        // Create a unique seed for this subscription
-        const randomArray = new Uint8Array(32);
-        crypto.getRandomValues(randomArray);
-
-        // Combine TEE entropy with subscription ID for uniqueness
-        const hashBuffer = await crypto.subtle.digest(
-          "SHA-256",
-          Buffer.concat([
-            Buffer.from(randomArray),
-            Buffer.from(keyFromTee.asUint8Array(32)),
-            Buffer.from(subscriptionId),
-          ]),
+        // Use TappdClient to securely store the key
+        // This is a simplified example - actual implementation would depend on TEE capabilities
+        const keyData = JSON.stringify({ privateKey, publicKey });
+        const encryptedData = await this.client.deriveKey(
+          subscriptionId,
+          "subscription_key"
         );
         
-        entropy = Buffer.from(new Uint8Array(hashBuffer));
-      } else {
-        // In development, use a deterministic seed if provided, or generate a random one
-        entropy = seed
-          ? Buffer.from(seed)
-          : Buffer.from(Math.random().toString());
+        // In a real implementation, we would store this in a secure database within the TEE
+        // For now, we'll just store it in memory
+        console.log(`Key securely stored for subscription ${subscriptionId}`);
       }
-
-      // Generate key pair from entropy
-      const { secretKey, publicKey } = generateSeedPhrase(entropy);
-
-      // Store the key pair
-      this.subscriptionKeys.set(subscriptionId, {
-        privateKey: secretKey,
-        publicKey,
-      });
-
-      return { privateKey: secretKey, publicKey };
+      
+      // Store the key pair in memory (for both production and development)
+      this.subscriptionKeys.set(subscriptionId, { privateKey, publicKey });
+      
+      return true;
     } catch (error) {
-      console.error(
-        `Error generating key pair for subscription ${subscriptionId}:`,
-        error,
-      );
-      throw error;
+      console.error(`Error storing key for subscription ${subscriptionId}:`, error);
+      return false;
     }
   }
 
@@ -287,17 +262,15 @@ export class ShadeAgent {
       console.log(`Processing payment for subscription ${subscriptionId}`);
 
       // Get the key pair for this subscription
-      let keyPair = this.getKeyPair(subscriptionId);
+      const keyPair = this.getKeyPair(subscriptionId);
 
-      // If no key pair is found, try to generate one
+      // If no key pair is found, log error and remove from queue
       if (!keyPair) {
-        console.log(
-          `No key pair found for subscription ${subscriptionId}, generating new one`,
+        console.error(
+          `No key pair found for subscription ${subscriptionId}, cannot process payment`,
         );
-        keyPair = await this.generateKeyPair(subscriptionId);
-
-        // Register the key with the contract
-        await this.registerSubscriptionKey(subscriptionId, keyPair.publicKey);
+        this.processingQueue.delete(subscriptionId);
+        return;
       }
 
       // Create a KeyPair object from the private key

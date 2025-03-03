@@ -54,28 +54,37 @@ sequenceDiagram
     participant User
     participant UI as Web Interface
     participant Wallet as NEAR Wallet
+    participant SDK as Subscription SDK
     participant TEE as Shade Agent (TEE)
     participant Contract as Subscription Contract
     
     User->>UI: Select subscription plan
-    UI->>TEE: Request seed for keypair
-    TEE-->>UI: Return seed
-    UI->>Wallet: Request to create function call access key
-    Note over UI,Wallet: Key limited to process_payment method
-    Note over UI,Wallet: Key limited to maximum allowance
-    Wallet-->>User: Confirm key creation
-    User->>Wallet: Approve
-    Wallet->>UI: Return success
     UI->>Wallet: Create subscription transaction
     Wallet-->>User: Confirm subscription creation
     User->>Wallet: Approve
     Wallet->>Contract: create_subscription(merchant, amount, frequency)
     Contract-->>Wallet: Return subscription_id
-    UI->>Wallet: Register public key with subscription
-    Wallet->>Contract: register_subscription_key(public_key, subscription_id)
-    Contract-->>UI: Confirmation
-    UI->>TEE: Register subscription_id with seed
-    TEE-->>UI: Confirmation
+    
+    UI->>SDK: Generate function call access key transaction
+    SDK-->>UI: Return transaction and key pair
+    UI->>Wallet: Request to create function call access key
+    Note over UI,Wallet: Key limited to process_payment method
+    Note over UI,Wallet: Key limited to maximum allowance
+    Wallet-->>User: Confirm key creation
+    User->>Wallet: Approve
+    Wallet->>Contract: Add function call access key
+    Wallet-->>UI: Return success
+    
+    UI->>SDK: Register public key with subscription
+    SDK->>Contract: register_subscription_key(public_key, subscription_id)
+    Contract-->>SDK: Confirmation
+    SDK-->>UI: Confirmation
+    
+    UI->>SDK: Store private key in TEE
+    SDK->>TEE: Securely store key pair
+    TEE-->>SDK: Confirmation
+    SDK-->>UI: Confirmation
+    
     UI-->>User: Subscription active confirmation
 ```
 
@@ -201,8 +210,9 @@ pub fn approve_agent_codehash(&mut self, codehash: String);
 The Shade Agent is a Worker Agent running in a TEE on Phala Cloud. It includes:
 
 1. **Key Management Module**:
-   - Securely generates and stores seeds for keypairs
-   - Derives keypairs when needed for transactions
+   - Securely stores user-provided private keys in the TEE
+   - Retrieves keys when needed for transactions
+   - Ensures keys are only accessible within the TEE
    - Implements secure key rotation if needed
 
 2. **Subscription Monitor**:
@@ -301,11 +311,12 @@ The Shade Agent is a Worker Agent running in a TEE on Phala Cloud. It includes:
 
 ### Challenge 1: Key Management
 
-**Problem**: Securely generating, storing, and using private keys.
+**Problem**: Securely storing and using private keys provided by users.
 
 **Solution**: 
-- Generate seeds within the TEE
-- Derive keypairs deterministically
+- User creates function call access keys with limited permissions
+- Private keys are securely stored within the TEE
+- Keys are only used for their designated subscriptions
 - Never expose private keys outside the TEE
 - Implement secure storage with encryption
 
@@ -458,10 +469,13 @@ sequenceDiagram
     API-->>UI: Return subscription_id
     
     UI->>API: POST /api/subscription (action: register_key)
-    API->>TEE: Generate keypair for subscription
-    TEE-->>API: Return keypair
-    API->>Contract: register_subscription_key(...)
+    API->>Contract: register_subscription_key(public_key, subscription_id)
     Contract-->>API: Confirmation
+    API-->>UI: Confirmation
+    
+    UI->>API: POST /api/keys (action: store)
+    API->>TEE: Securely store private key
+    TEE-->>API: Confirmation
     API-->>UI: Confirmation
     
     Note over TEE,Contract: Payment Processing

@@ -1,7 +1,7 @@
 services:
     web:
         platform: linux/amd64 # Explicitly set for TDX
-        image: elliotbraem/ping-subscription-service:latest@sha256:769964cdceb6b676facc598f50d470e7bc705f8f661eca950b674c92d9f7f2b7
+        image: elliotbraem/ping-subscription-service:latest@sha256:11ec7e8762a262f4a74bd0c9f0a82d4c05f6bd24c3032a317fbbd4405fafe1c5
         container_name: web
         ports:
             - '3000:3000'
