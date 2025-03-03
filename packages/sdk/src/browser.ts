@@ -344,10 +344,12 @@ export class SubscriptionSDK {
     const privateKey = keyPair.toString();
 
     // Define the function call access key with specific method names and allowance
+    // Ensure the allowance is properly formatted as a string to avoid scientific notation issues
+    const formattedAllowance = allowance.toString();
     const accessKey = transactions.functionCallAccessKey(
       contractId,
       ["process_payment"],
-      BigInt(allowance),
+      BigInt(formattedAllowance)
     );
 
     // Create an action to add the key
