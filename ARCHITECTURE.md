@@ -101,10 +101,10 @@ sequenceDiagram
     Contract-->>TEE: List of due subscriptions
     
     loop For each subscription
-        TEE->>TEE: Retrieve/derive private key
-        TEE->>TEE: Create keypair and account object
+        TEE->>TEE: Retrieve private key from secure storage
+        TEE->>TEE: Create keypair from private key
         TEE->>Contract: process_payment(subscription_id)
-        Contract->>Contract: Verify key is authorized
+        Contract->>Contract: Verify key is authorized for subscription
         Contract->>Contract: Verify payment is due
         Contract->>Merchant: Transfer payment
         Contract->>Contract: Update next payment date

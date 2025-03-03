@@ -17,6 +17,7 @@ The system solves a fundamental problem in blockchain payments: most networks ar
 sequenceDiagram
     participant User
     participant UI as Web Interface
+    participant SDK as Subscription SDK
     participant API as API Endpoints
     participant TEE as Shade Agent (TEE)
     participant Contract as Subscription Contract
@@ -34,22 +35,36 @@ sequenceDiagram
     
     Note over User,Contract: Subscription Creation
     User->>UI: Select subscription plan
-    UI->>API: POST /api/derive
-    API->>TEE: Generate secure keypair
-    TEE-->>API: Return accountId
-    API-->>UI: Return accountId
-    
     UI->>API: POST /api/subscription (action: create)
     API->>Contract: create_subscription(...)
     Contract-->>API: Return subscription_id
     API-->>UI: Return subscription_id
     
-    UI->>API: POST /api/subscription (action: register_key)
-    API->>TEE: Generate keypair for subscription
-    TEE-->>API: Return keypair
-    API->>Contract: register_subscription_key(...)
+    UI->>SDK: Generate function call access key transaction
+    SDK-->>UI: Return transaction and key pair
+    UI->>API: Request to create function call access key
+    Note over UI,API: Key limited to process_payment method
+    Note over UI,API: Key limited to maximum allowance
+    API-->>User: Confirm key creation
+    User->>API: Approve
+    API->>Contract: Add function call access key
+    API-->>UI: Return success
+    
+    UI->>SDK: Register public key with subscription
+    SDK->>API: POST /api/subscription (action: registerKey)
+    API->>Contract: register_subscription_key(public_key, subscription_id)
     Contract-->>API: Confirmation
-    API-->>UI: Confirmation
+    API-->>SDK: Confirmation
+    SDK-->>UI: Confirmation
+    
+    UI->>SDK: Store private key in TEE
+    SDK->>API: POST /api/keys (action: store)
+    API->>TEE: Securely store key pair
+    TEE-->>API: Confirmation
+    API-->>SDK: Confirmation
+    SDK-->>UI: Confirmation
+    
+    UI-->>User: Subscription active confirmation
     
     Note over TEE,Contract: Payment Processing
     User->>UI: Start monitoring
@@ -64,12 +79,16 @@ sequenceDiagram
     API-->>TEE: Due subscriptions
     
     loop For each due subscription
-        TEE->>TEE: Retrieve/derive private key
+        TEE->>TEE: Retrieve private key from secure storage
+        TEE->>TEE: Create keypair from private key
         TEE->>API: Process payment
         API->>Contract: process_payment(subscription_id)
+        Contract->>Contract: Verify key is authorized for subscription
+        Contract->>Contract: Verify payment is due
         Contract->>Contract: Transfer payment
         Contract-->>API: Payment result
         API-->>TEE: Payment result
+        TEE->>TEE: Log result and handle failures
     end
 ```
 
@@ -139,15 +158,12 @@ yarn dev
 The TypeScript SDK provides a simple way to interact with the subscription service:
 
 ```typescript
-import { SubscriptionSDK } from '@pingpay/subscription-sdk';
+import { SubscriptionSDK } from '@pingpay/subscription-sdk/dist/browser';
 
 // Create a new SDK instance
 const sdk = new SubscriptionSDK({
   apiUrl: 'http://localhost:3000' // Optional, defaults to this value
 });
-
-// Get worker status
-const workerStatus = await sdk.isWorkerVerified();
 
 // Create a subscription
 const result = await sdk.createSubscription({
@@ -156,6 +172,27 @@ const result = await sdk.createSubscription({
   frequency: 86400, // Daily in seconds
   maxPayments: 30
 });
+
+// Generate a function call access key for the subscription
+const { transaction, keyPair } = sdk.createSubscriptionKeyTransaction(
+  'user.near',
+  result.subscriptionId,
+  'subscription.near',
+  '250000000000000000000000' // 0.25 NEAR allowance
+);
+
+// Register the key with the contract
+await sdk.registerSubscriptionKey(
+  result.subscriptionId,
+  keyPair.publicKey
+);
+
+// Store the private key in the TEE
+await sdk.storeSubscriptionKey(
+  result.subscriptionId,
+  keyPair.privateKey,
+  keyPair.publicKey
+);
 
 // Get user subscriptions
 const subscriptions = await sdk.getUserSubscriptions('user.near');
