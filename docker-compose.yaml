@@ -5,7 +5,7 @@ services:
             SECRET_KEY: ${SECRET_KEY}
             CONTRACT_ID: ${CONTRACT_ID}
         platform: linux/amd64 # Explicitly set for TDX
-        image: elliotbraem/ping-subscription-service:latest@sha256:11ec7e8762a262f4a74bd0c9f0a82d4c05f6bd24c3032a317fbbd4405fafe1c5
+        image: elliotbraem/ping-subscription-service:latest@sha256:4a28ca44d5b9c5d0e98a8b44f77c3955caf591c9bda6af935b741bb52196e32b
         container_name: web
         ports:
             - '3000:3000'
