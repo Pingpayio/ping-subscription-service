@@ -1,9 +1,5 @@
 import * as nearAPI from "near-api-js";
-import {
-  contractCall,
-  contractView,
-  getAccount
-} from "./near-provider.js";
+import { contractCall, contractView, getAccount } from "./near-provider.js";
 import { TappdClient } from "./tappd.js";
 // Use a default account ID if not provided
 const { KeyPair } = nearAPI;

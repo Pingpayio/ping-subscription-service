@@ -16,7 +16,7 @@ export const setContractId = (contractId: string): void => {
   _contractId = contractId;
 };
 const networkId = /testnet/gi.test(_contractId || "") ? "testnet" : "testnet";
-const keyStore = new keyStores.InMemoryKeyStore(); 
+const keyStore = new keyStores.InMemoryKeyStore();
 const config =
   networkId === "testnet"
     ? {
@@ -93,7 +93,9 @@ export const contractView = async <T = any>({
   args = {},
 }: ViewFunctionParams): Promise<T> => {
   if (!contractId) {
-    throw new Error("Contract ID is not set. Call setContractId first or provide a contractId parameter.");
+    throw new Error(
+      "Contract ID is not set. Call setContractId first or provide a contractId parameter.",
+    );
   }
   const account = getAccount(accountId);
 
@@ -128,7 +130,9 @@ export const contractCall = async <T = any>({
   args,
 }: FunctionCallParams): Promise<T> => {
   if (!contractId) {
-    throw new Error("Contract ID is not set. Call setContractId first or provide a contractId parameter.");
+    throw new Error(
+      "Contract ID is not set. Call setContractId first or provide a contractId parameter.",
+    );
   }
   const account = getAccount(accountId);
   let res;
