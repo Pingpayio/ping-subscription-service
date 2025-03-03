@@ -1,9 +1,11 @@
 import {
-  Subscription,
-  WorkerStatus,
   Merchant,
   MonitoringStatus,
+  Subscription,
+  WorkerStatus,
 } from "@ping-subscription/types";
+import * as nearAPI from "near-api-js";
+const { KeyPair } = nearAPI;
 
 /**
  * SDK configuration options
@@ -118,6 +120,65 @@ export class SubscriptionSDK {
     const response = await fetch(`${this.apiUrl}/api/register`);
     const data = await response.json();
     return data.registered;
+  }
+
+  /**
+     * Start monitoring subscriptions
+     * @param interval Monitoring interval in milliseconds (default: 60000)
+     * @returns Operation result
+     */
+  async startMonitoring(
+    interval?: number,
+  ): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
+    const response = await fetch(`${this.apiUrl}/api/monitor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "start",
+        interval,
+      }),
+    });
+    return await response.json();
+  }
+
+  /**
+   * Stop monitoring subscriptions
+   * @returns Operation result
+   */
+  async stopMonitoring(): Promise<{
+    success: boolean;
+    message: string;
+    isMonitoring: boolean;
+  }> {
+    const response = await fetch(`${this.apiUrl}/api/monitor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "stop",
+      }),
+    });
+    return await response.json();
+  }
+
+  /**
+   * Get monitoring status
+   * @returns Monitoring status
+   */
+  async getMonitoringStatus(): Promise<MonitoringStatus> {
+    const response = await fetch(`${this.apiUrl}/api/monitor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "status",
+      }),
+    });
+    return await response.json();
   }
 
   /**
@@ -260,59 +321,107 @@ export class SubscriptionSDK {
   }
 
   /**
-   * Start monitoring subscriptions
-   * @param interval Monitoring interval in milliseconds (default: 60000)
+   * Create a function call access key for a subscription
+   * This generates a transaction that the user needs to sign to create the key
+   * @param accountId The user's account ID
+   * @param subscriptionId The subscription ID
+   * @param contractId The contract ID
+   * @param allowance The maximum allowance for the key (in yoctoNEAR)
+   * @returns The transaction to sign and the generated key pair
+   */
+  createSubscriptionKeyTransaction(
+    accountId: string,
+    subscriptionId: string, // this isn't really used right now, but it could be used to ensure validity
+    contractId: string,
+    allowance: string = "250000000000000000000000", // 0.25 NEAR default
+  ): {
+    transaction: any;
+    keyPair: { publicKey: string; privateKey: string };
+  } {
+    // Generate a new key pair
+    const keyPair = KeyPair.fromRandom("ed25519");
+    const publicKey = keyPair.getPublicKey().toString();
+    const privateKey = keyPair.toString();
+
+    // Create a transaction to add the function call access key
+    // This will allow the key to only call the process_payment method on the contract
+    // with a specific allowance
+    const transaction = {
+      receiverId: accountId,
+      actions: [
+        {
+          type: "AddKey",
+          params: {
+            publicKey: publicKey,
+            accessKey: {
+              nonce: 0,
+              permission: {
+                type: "FunctionCall",
+                methodNames: ["process_payment"],
+                contractId: contractId,
+                allowance: allowance,
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    return {
+      transaction,
+      keyPair: {
+        publicKey,
+        privateKey,
+      },
+    };
+  }
+
+  /**
+   * Register a subscription key with the contract
+   * @param subscriptionId The subscription ID
+   * @param publicKey The public key to register
    * @returns Operation result
    */
-  async startMonitoring(
-    interval?: number,
-  ): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
-    const response = await fetch(`${this.apiUrl}/api/monitor`, {
+  async registerSubscriptionKey(
+    subscriptionId: string,
+    publicKey: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.apiUrl}/api/subscription`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: "start",
-        interval,
+        action: "registerKey",
+        subscriptionId,
+        publicKey,
       }),
     });
     return await response.json();
   }
 
   /**
-   * Stop monitoring subscriptions
+   * Store a private key for a subscription in the TEE
+   * @param subscriptionId The subscription ID
+   * @param privateKey The private key to store
+   * @param publicKey The public key
    * @returns Operation result
    */
-  async stopMonitoring(): Promise<{
-    success: boolean;
-    message: string;
-    isMonitoring: boolean;
-  }> {
-    const response = await fetch(`${this.apiUrl}/api/monitor`, {
+  async storeSubscriptionKey(
+    subscriptionId: string,
+    privateKey: string,
+    publicKey: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.apiUrl}/api/keys`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: "stop",
-      }),
-    });
-    return await response.json();
-  }
-
-  /**
-   * Get monitoring status
-   * @returns Monitoring status
-   */
-  async getMonitoringStatus(): Promise<MonitoringStatus> {
-    const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action: "status",
+        action: "store",
+        subscriptionId,
+        privateKey,
+        publicKey,
       }),
     });
     return await response.json();
