@@ -8,7 +8,7 @@
  * 4. Store the private key in the TEE
  */
 
-import { SubscriptionSDK } from "@ping-subscription/sdk";
+import { SubscriptionSDK } from "@pingpay/subscription-sdk";
 import { connect, keyStores, WalletConnection } from "near-api-js";
 
 // Initialize the SDK

@@ -3,7 +3,7 @@ import {
   MonitoringStatus,
   Subscription,
   WorkerStatus,
-} from "@ping-subscription/types";
+} from "@pingpay/types";
 import * as nearAPI from "near-api-js";
 const { KeyPair } = nearAPI;
 

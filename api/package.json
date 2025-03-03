@@ -12,7 +12,7 @@
     "@hono/node-server": "^1.13.8",
     "@phala/dcap-qvl-web": "^0.1.0-beta.2",
     "@phala/dstack-sdk": "^0.1.7",
-    "@ping-subscription/sdk": "workspace:*",
+    "@pingpay/subscription-sdk": "workspace:*",
     "dotenv": "^16.4.7",
     "hono": "^4.7.2",
     "near-api-js": "^5.0.1",
@@ -20,7 +20,7 @@
     "net": "^1.0.2"
   },
   "devDependencies": {
-    "@ping-subscription/types": "workspace:*",
+    "@pingpay/types": "workspace:*",
     "@types/node": "^20.11.30",
     "typescript": "^5.4.2"
   }

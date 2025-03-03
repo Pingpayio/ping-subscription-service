@@ -139,7 +139,7 @@ yarn dev
 The TypeScript SDK provides a simple way to interact with the subscription service:
 
 ```typescript
-import { SubscriptionSDK } from '@ping-subscription/sdk';
+import { SubscriptionSDK } from '@pingpay/subscription-sdk';
 
 // Create a new SDK instance
 const sdk = new SubscriptionSDK({

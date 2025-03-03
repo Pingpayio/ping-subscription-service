@@ -1,4 +1,4 @@
-import SubscriptionSDK from "@ping-subscription/sdk/dist/browser";
+import SubscriptionSDK from "@pingpay/subscription-sdk/dist/browser";
 
 // Initialize the SDK with the current origin as the API URL
 const apiUrl = window.location.origin;
