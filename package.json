@@ -9,7 +9,7 @@
   "scripts": {
     "setup": "yarn build:packages",
     "dev": "concurrently \"yarn dev:api\" \"yarn dev:frontend\"",
-    "dev:api": "cd api && yarn --watch src/server.ts",
+    "dev:api": "cd api && yarn src/server.ts",
     "dev:frontend": "cd frontend && yarn run dev",
     "build": "yarn build:packages && yarn build:frontend && yarn build:api && yarn copy:frontend",
     "build:frontend": "cd frontend && yarn run build",

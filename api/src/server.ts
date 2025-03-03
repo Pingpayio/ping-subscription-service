@@ -2,15 +2,11 @@ import { serve } from "@hono/node-server";
 import * as dotenv from "dotenv";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
+import { cors } from "hono/cors";
 import fs from "fs";
 import path from "path";
 
-// Load environment variables
-if (process.env.NODE_ENV !== "production") {
-  dotenv.config({ path: "./.env.development.local" });
-} else {
-  dotenv.config();
-}
+dotenv.config();
 
 // Import utilities
 import { generateSeedPhrase } from "near-seed-phrase";
@@ -19,17 +15,44 @@ import {
   contractView,
   getImplicit,
   setKey,
+  setContractId,
   TappdClient,
   shadeAgent,
   getBalance,
 } from "@pingpay/subscription-sdk";
 import { WorkerStatus, Subscription } from "@pingpay/types";
 
+// Initialize SDK with environment variables
+if (process.env.CONTRACT_ID) {
+  setContractId(process.env.CONTRACT_ID);
+  console.log(`SDK initialized with contract: ${process.env.CONTRACT_ID}`);
+} else {
+  console.warn("Missing CONTRACT_ID environment variable. SDK not fully initialized.");
+}
+
+if (process.env.SIGNER_ID && process.env.SECRET_KEY) {
+  setKey(
+    process.env.SIGNER_ID,
+    process.env.SECRET_KEY
+  );
+  console.log(`SDK initialized with account: ${process.env.SIGNER_ID}`);
+} else {
+  console.warn("Missing SIGNER_ID or SECRET_KEY environment variables. SDK not fully initialized.");
+}
+
 // Create Hono app
 const app = new Hono();
 
 // Middleware
 app.use(logger());
+app.use(cors({
+  origin: '*', // Allow requests from any origin
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+  maxAge: 600,
+  credentials: true,
+}));
 
 // Serve static files from the public directory
 app.get("/public/*", async (c: any) => {

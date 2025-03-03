@@ -1,13 +1,11 @@
-import { TappdClient } from "./tappd.js";
+import * as nearAPI from "near-api-js";
 import {
   contractCall,
   contractView,
-  contractId as _contractId,
+  getAccount
 } from "./near-provider.js";
+import { TappdClient } from "./tappd.js";
 // Use a default account ID if not provided
-const _accountId = process.env.NEXT_PUBLIC_accountId || "test.near";
-import { generateSeedPhrase } from "near-seed-phrase";
-import * as nearAPI from "near-api-js";
 const { KeyPair } = nearAPI;
 
 interface KeyPair {
@@ -84,7 +82,7 @@ export class ShadeAgent {
 
       // Verify the agent with the contract
       await contractCall({
-        accountId: _accountId,
+        accountId: getAccount(),
         methodName: "is_verified_by_codehash",
         args: { codehash },
       });
@@ -149,7 +147,7 @@ export class ShadeAgent {
   ): Promise<boolean> {
     try {
       await contractCall({
-        accountId: _accountId,
+        accountId: getAccount(),
         methodName: "register_subscription_key",
         args: {
           public_key: publicKey,
@@ -237,7 +235,7 @@ export class ShadeAgent {
     try {
       // Get due subscriptions from the contract
       const dueSubscriptions = (await contractView({
-        accountId: _accountId,
+        accountId: getAccount(),
         methodName: "get_due_subscriptions",
         args: { limit },
       })) as Subscription[];
@@ -300,11 +298,11 @@ export class ShadeAgent {
       // Set the key in the keystore for this account
       // This is needed because contractCall will use the key from the keystore
       const { setKey } = await import("./near-provider.js");
-      setKey(_accountId, keyPair.privateKey);
+      setKey(getAccount(), keyPair.privateKey);
 
       // Call the contract to process the payment
       const result = (await contractCall({
-        accountId: _accountId,
+        accountId: getAccount(),
         methodName: "process_payment",
         args: { subscription_id: subscriptionId },
       })) as PaymentResult;

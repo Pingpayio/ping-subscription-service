@@ -1,12 +1,3 @@
-import * as dotenv from "dotenv";
-if (process.env.NODE_ENV !== "production") {
-  // will load for browser and backend
-  dotenv.config({ path: "./.env.development.local" });
-} else {
-  // load .env in production
-  dotenv.config();
-}
-
 import * as nearAPI from "near-api-js";
 const {
   Near,
@@ -16,16 +7,16 @@ const {
   utils: { PublicKey },
 } = nearAPI;
 
-// from .env
-let _contractId = process.env.NEXT_PUBLIC_contractId;
-// from .env.development.local
-let secretKey = process.env.NEXT_PUBLIC_secretKey;
-let _accountId = process.env.NEXT_PUBLIC_accountId;
+// These will be set by the server
+let _contractId: string | undefined;
+let _accountId: string | undefined;
 
-export const contractId = _contractId;
-
-const networkId = /testnet/gi.test(contractId || "") ? "testnet" : "mainnet";
-const keyStore = new keyStores.InMemoryKeyStore();
+export const getContractId = () => _contractId;
+export const setContractId = (contractId: string): void => {
+  _contractId = contractId;
+};
+const networkId = /testnet/gi.test(_contractId || "") ? "testnet" : "testnet";
+const keyStore = new keyStores.InMemoryKeyStore(); 
 const config =
   networkId === "testnet"
     ? {
@@ -54,18 +45,12 @@ export const setKey = (accountId: string, secretKey: string): void => {
   if (!accountId || !secretKey) return;
   _accountId = accountId;
   const keyPair = KeyPair.fromString(secretKey);
-  // set in-memory keystore only
   keyStore.setKey(networkId, accountId, keyPair);
 };
-// .env.development.local - automatically set key to dev account
-if (secretKey) {
-  setKey(_accountId || "", secretKey);
-}
-// .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
-// process.env.NEXT_PUBLIC_secretKey not set in production
-export const getDevAccountKeyPair = (): nearAPI.KeyPair => {
-  const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey || "");
-  keyStore.setKey(networkId, contractId || "", keyPair);
+
+export const getDevAccountKeyPair = (secretKey: string): nearAPI.KeyPair => {
+  const keyPair = KeyPair.fromString(secretKey);
+  keyStore.setKey(networkId, _contractId || "", keyPair);
   return keyPair;
 };
 
@@ -107,6 +92,9 @@ export const contractView = async <T = any>({
   methodName,
   args = {},
 }: ViewFunctionParams): Promise<T> => {
+  if (!contractId) {
+    throw new Error("Contract ID is not set. Call setContractId first or provide a contractId parameter.");
+  }
   const account = getAccount(accountId);
 
   let res;
@@ -139,6 +127,9 @@ export const contractCall = async <T = any>({
   methodName,
   args,
 }: FunctionCallParams): Promise<T> => {
+  if (!contractId) {
+    throw new Error("Contract ID is not set. Call setContractId first or provide a contractId parameter.");
+  }
   const account = getAccount(accountId);
   let res;
   try {

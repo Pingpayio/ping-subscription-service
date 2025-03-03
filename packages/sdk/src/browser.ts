@@ -350,7 +350,7 @@ export class SubscriptionSDK {
       receiverId: accountId,
       actions: [
         {
-          type: "AddKey",
+          type: "addKey",
           params: {
             publicKey: publicKey,
             accessKey: {
