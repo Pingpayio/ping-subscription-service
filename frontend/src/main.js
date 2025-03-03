@@ -98,7 +98,7 @@ const registerWorker = async () => {
   try {
     await setMessage(
       '<p class="text-lg font-bold mb-2">Registering Worker</p><p class="loading">Please wait</p>',
-      0
+      0,
     );
 
     const registered = await sdk.registerWorker();
@@ -114,20 +114,25 @@ const registerWorker = async () => {
     await checkWorkerVerification();
   } catch (error) {
     console.error("Error registering worker:", error);
-    
+
     // Improved error handling with more detailed error message
     let errorMessage = error.message || "Unknown error occurred";
-    
+
     // Check if it's a network error
-    if (error.name === 'TypeError' && errorMessage.includes('Failed to fetch')) {
-      errorMessage = "Network error: Unable to connect to the server. Please check your connection and try again.";
+    if (
+      error.name === "TypeError" &&
+      errorMessage.includes("Failed to fetch")
+    ) {
+      errorMessage =
+        "Network error: Unable to connect to the server. Please check your connection and try again.";
     }
-    
+
     // Check if it's a server error (500)
-    if (errorMessage.includes('500')) {
-      errorMessage = "Server error: The server encountered an internal error. This could be due to TEE operations or contract interaction issues.";
+    if (errorMessage.includes("500")) {
+      errorMessage =
+        "Server error: The server encountered an internal error. This could be due to TEE operations or contract interaction issues.";
     }
-    
+
     await setMessage(
       `
       <p class="text-lg font-bold mb-2 text-red-600">Registration Error</p>

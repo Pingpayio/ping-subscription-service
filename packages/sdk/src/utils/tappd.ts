@@ -4,7 +4,9 @@ import http from "http";
 import https from "https";
 import { URL } from "url";
 
-export function to_hex(data: string | Uint8Array | NodeJS.ArrayBufferView): string {
+export function to_hex(
+  data: string | Uint8Array | NodeJS.ArrayBufferView,
+): string {
   if (typeof data === "string") {
     return Buffer.from(data).toString("hex");
   }
@@ -15,7 +17,9 @@ export function to_hex(data: string | Uint8Array | NodeJS.ArrayBufferView): stri
     return data.toString("hex");
   }
   // Convert other ArrayBufferView types to Buffer
-  return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("hex");
+  return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString(
+    "hex",
+  );
 }
 
 function x509key_to_uint8array(pem: string, max_length?: number): Uint8Array {
@@ -74,7 +78,11 @@ function reply_rtmrs(event_log: EventLogEntry[]): string[] {
   return rtmrs;
 }
 
-export function send_rpc_request(endpoint: string, path: string, payload: string): Promise<any> {
+export function send_rpc_request(
+  endpoint: string,
+  path: string,
+  payload: string,
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const abortController = new AbortController();
     const timeout = setTimeout(() => {
@@ -225,7 +233,11 @@ export class TappdClient {
     return result;
   }
 
-  async deriveKey(path: string, subject: string, alt_names?: string[]): Promise<DeriveKeyResult> {
+  async deriveKey(
+    path: string,
+    subject: string,
+    alt_names?: string[],
+  ): Promise<DeriveKeyResult> {
     let raw: Record<string, any> = {
       path: path || "",
       subject: subject || path || "",
@@ -241,12 +253,16 @@ export class TappdClient {
     );
 
     // Add asUint8Array method to the result
-    result.asUint8Array = (length?: number) => x509key_to_uint8array(result.key, length);
+    result.asUint8Array = (length?: number) =>
+      x509key_to_uint8array(result.key, length);
 
     return Object.freeze(result);
   }
 
-  async tdxQuote(report_data: string, hash_algorithm?: string): Promise<TdxQuoteResult> {
+  async tdxQuote(
+    report_data: string,
+    hash_algorithm?: string,
+  ): Promise<TdxQuoteResult> {
     let hex = to_hex(report_data);
     if (hash_algorithm === "raw") {
       if (hex.length > 128) {

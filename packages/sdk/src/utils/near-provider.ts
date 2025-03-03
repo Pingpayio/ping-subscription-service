@@ -24,7 +24,7 @@ let _accountId = process.env.NEXT_PUBLIC_accountId;
 
 export const contractId = _contractId;
 
-const networkId = /testnet/gi.test(contractId || '') ? "testnet" : "mainnet";
+const networkId = /testnet/gi.test(contractId || "") ? "testnet" : "mainnet";
 const keyStore = new keyStores.InMemoryKeyStore();
 const config =
   networkId === "testnet"
@@ -59,22 +59,25 @@ export const setKey = (accountId: string, secretKey: string): void => {
 };
 // .env.development.local - automatically set key to dev account
 if (secretKey) {
-  setKey(_accountId || '', secretKey);
+  setKey(_accountId || "", secretKey);
 }
 // .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
 // process.env.NEXT_PUBLIC_secretKey not set in production
 export const getDevAccountKeyPair = (): nearAPI.KeyPair => {
-  const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey || '');
-  keyStore.setKey(networkId, contractId || '', keyPair);
+  const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey || "");
+  keyStore.setKey(networkId, contractId || "", keyPair);
   return keyPair;
 };
 
 export const getImplicit = (pubKeyStr: string): string =>
   Buffer.from(PublicKey.from(pubKeyStr).data).toString("hex").toLowerCase();
 
-export const getAccount = (id = _accountId): nearAPI.Account => new Account(connection, id || '');
+export const getAccount = (id = _accountId): nearAPI.Account =>
+  new Account(connection, id || "");
 
-export const getBalance = async (accountId: string): Promise<{ available: string }> => {
+export const getBalance = async (
+  accountId: string,
+): Promise<{ available: string }> => {
   let balance = { available: "0" };
   try {
     const account = getAccount(accountId);
@@ -109,7 +112,7 @@ export const contractView = async <T = any>({
   let res;
   try {
     res = await account.viewFunction({
-      contractId: contractId || '',
+      contractId: contractId || "",
       methodName,
       args,
       gas,
@@ -140,7 +143,7 @@ export const contractCall = async <T = any>({
   let res;
   try {
     res = await account.functionCall({
-      contractId: contractId || '',
+      contractId: contractId || "",
       methodName,
       args,
       gas,

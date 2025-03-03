@@ -2,8 +2,8 @@ import {
   Subscription,
   WorkerStatus,
   Merchant,
-  MonitoringStatus
-} from '@ping-subscription/types';
+  MonitoringStatus,
+} from "@ping-subscription/types";
 
 /**
  * SDK configuration options
@@ -24,22 +24,22 @@ export interface CreateSubscriptionParams {
    * Merchant ID
    */
   merchantId: string;
-  
+
   /**
    * Subscription amount in yoctoNEAR (10^-24 NEAR)
    */
   amount: string;
-  
+
   /**
    * Subscription frequency in seconds
    */
   frequency: number;
-  
+
   /**
    * Maximum number of payments (optional)
    */
   maxPayments?: number;
-  
+
   /**
    * Token address for FT payments (optional)
    */
@@ -58,7 +58,7 @@ export class SubscriptionSDK {
    * @param options SDK configuration options
    */
   constructor(options: SubscriptionSDKOptions = {}) {
-    this.apiUrl = options.apiUrl || 'http://localhost:3000';
+    this.apiUrl = options.apiUrl || "http://localhost:3000";
   }
 
   /**
@@ -77,10 +77,16 @@ export class SubscriptionSDK {
    * @returns Account balance information
    */
   async getBalance(accountId: string): Promise<{ available: string }> {
-    const response = await fetch(`${this.apiUrl}/api/balance?accountId=${encodeURIComponent(accountId)}`);
+    const response = await fetch(
+      `${this.apiUrl}/api/balance?accountId=${encodeURIComponent(accountId)}`,
+    );
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(errorData.error || `Failed to fetch balance: ${response.status}`);
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: response.statusText }));
+      throw new Error(
+        errorData.error || `Failed to fetch balance: ${response.status}`,
+      );
     }
     return await response.json();
   }
@@ -128,14 +134,16 @@ export class SubscriptionSDK {
    * @param params Subscription creation parameters
    * @returns Subscription creation result
    */
-  async createSubscription(params: CreateSubscriptionParams): Promise<{ success: boolean; subscriptionId: string }> {
+  async createSubscription(
+    params: CreateSubscriptionParams,
+  ): Promise<{ success: boolean; subscriptionId: string }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'create',
+        action: "create",
         merchantId: params.merchantId,
         amount: params.amount,
         frequency: params.frequency,
@@ -151,14 +159,16 @@ export class SubscriptionSDK {
    * @param subscriptionId Subscription ID
    * @returns Subscription details
    */
-  async getSubscription(subscriptionId: string): Promise<{ subscription: Subscription }> {
+  async getSubscription(
+    subscriptionId: string,
+  ): Promise<{ subscription: Subscription }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'get',
+        action: "get",
         subscriptionId,
       }),
     });
@@ -170,14 +180,16 @@ export class SubscriptionSDK {
    * @param accountId User account ID
    * @returns List of subscriptions
    */
-  async getUserSubscriptions(accountId: string): Promise<{ subscriptions: Subscription[] }> {
+  async getUserSubscriptions(
+    accountId: string,
+  ): Promise<{ subscriptions: Subscription[] }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'list',
+        action: "list",
         accountId,
       }),
     });
@@ -189,14 +201,16 @@ export class SubscriptionSDK {
    * @param subscriptionId Subscription ID
    * @returns Operation result
    */
-  async pauseSubscription(subscriptionId: string): Promise<{ success: boolean; message: string }> {
+  async pauseSubscription(
+    subscriptionId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'pause',
+        action: "pause",
         subscriptionId,
       }),
     });
@@ -208,14 +222,16 @@ export class SubscriptionSDK {
    * @param subscriptionId Subscription ID
    * @returns Operation result
    */
-  async resumeSubscription(subscriptionId: string): Promise<{ success: boolean; message: string }> {
+  async resumeSubscription(
+    subscriptionId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'resume',
+        action: "resume",
         subscriptionId,
       }),
     });
@@ -227,14 +243,16 @@ export class SubscriptionSDK {
    * @param subscriptionId Subscription ID
    * @returns Operation result
    */
-  async cancelSubscription(subscriptionId: string): Promise<{ success: boolean; message: string }> {
+  async cancelSubscription(
+    subscriptionId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${this.apiUrl}/api/subscription`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'cancel',
+        action: "cancel",
         subscriptionId,
       }),
     });
@@ -246,14 +264,16 @@ export class SubscriptionSDK {
    * @param interval Monitoring interval in milliseconds (default: 60000)
    * @returns Operation result
    */
-  async startMonitoring(interval?: number): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
+  async startMonitoring(
+    interval?: number,
+  ): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'start',
+        action: "start",
         interval,
       }),
     });
@@ -264,14 +284,18 @@ export class SubscriptionSDK {
    * Stop monitoring subscriptions
    * @returns Operation result
    */
-  async stopMonitoring(): Promise<{ success: boolean; message: string; isMonitoring: boolean }> {
+  async stopMonitoring(): Promise<{
+    success: boolean;
+    message: string;
+    isMonitoring: boolean;
+  }> {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'stop',
+        action: "stop",
       }),
     });
     return await response.json();
@@ -283,12 +307,12 @@ export class SubscriptionSDK {
    */
   async getMonitoringStatus(): Promise<MonitoringStatus> {
     const response = await fetch(`${this.apiUrl}/api/monitor`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'status',
+        action: "status",
       }),
     });
     return await response.json();

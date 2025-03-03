@@ -1,5 +1,9 @@
 import { TappdClient } from "./tappd.js";
-import { contractCall, contractView, contractId as _contractId } from "./near-provider.js";
+import {
+  contractCall,
+  contractView,
+  contractId as _contractId,
+} from "./near-provider.js";
 // Use a default account ID if not provided
 const _accountId = process.env.NEXT_PUBLIC_accountId || "test.near";
 import { generateSeedPhrase } from "near-seed-phrase";
@@ -12,7 +16,7 @@ interface KeyPair {
 }
 
 interface ProcessingStatus {
-  status: 'processing' | 'retrying';
+  status: "processing" | "retrying";
   retryCount: number;
 }
 
@@ -100,7 +104,11 @@ export class ShadeAgent {
    * @param {string} publicKey - The public key
    * @returns {boolean} - Whether the key was successfully stored
    */
-  async securelyStoreKey(subscriptionId: string, privateKey: string, publicKey: string): Promise<boolean> {
+  async securelyStoreKey(
+    subscriptionId: string,
+    privateKey: string,
+    publicKey: string,
+  ): Promise<boolean> {
     try {
       // In production, use TEE's secure storage capabilities
       if (process.env.NODE_ENV === "production") {
@@ -109,20 +117,23 @@ export class ShadeAgent {
         const keyData = JSON.stringify({ privateKey, publicKey });
         const encryptedData = await this.client.deriveKey(
           subscriptionId,
-          "subscription_key"
+          "subscription_key",
         );
-        
+
         // In a real implementation, we would store this in a secure database within the TEE
         // For now, we'll just store it in memory
         console.log(`Key securely stored for subscription ${subscriptionId}`);
       }
-      
+
       // Store the key pair in memory (for both production and development)
       this.subscriptionKeys.set(subscriptionId, { privateKey, publicKey });
-      
+
       return true;
     } catch (error) {
-      console.error(`Error storing key for subscription ${subscriptionId}:`, error);
+      console.error(
+        `Error storing key for subscription ${subscriptionId}:`,
+        error,
+      );
       return false;
     }
   }
@@ -132,7 +143,10 @@ export class ShadeAgent {
    * @param {string} subscriptionId - The subscription ID
    * @param {string} publicKey - The public key to register
    */
-  async registerSubscriptionKey(subscriptionId: string, publicKey: string): Promise<boolean> {
+  async registerSubscriptionKey(
+    subscriptionId: string,
+    publicKey: string,
+  ): Promise<boolean> {
     try {
       await contractCall({
         accountId: _accountId,
@@ -169,7 +183,11 @@ export class ShadeAgent {
    * @param {string} privateKey - The private key
    * @param {string} publicKey - The public key
    */
-  storeKeyPair(subscriptionId: string, privateKey: string, publicKey: string): void {
+  storeKeyPair(
+    subscriptionId: string,
+    privateKey: string,
+    publicKey: string,
+  ): void {
     this.subscriptionKeys.set(subscriptionId, { privateKey, publicKey });
   }
 
@@ -218,11 +236,11 @@ export class ShadeAgent {
   async checkDueSubscriptions(limit = 10): Promise<void> {
     try {
       // Get due subscriptions from the contract
-      const dueSubscriptions = await contractView({
+      const dueSubscriptions = (await contractView({
         accountId: _accountId,
         methodName: "get_due_subscriptions",
         args: { limit },
-      }) as Subscription[];
+      })) as Subscription[];
 
       console.log(`Found ${dueSubscriptions.length} due subscriptions`);
 
@@ -249,7 +267,10 @@ export class ShadeAgent {
    * @param {Object} subscription - The subscription object
    * @param {number} retryCount - The current retry count
    */
-  async processPayment(subscription: Subscription, retryCount = 0): Promise<void> {
+  async processPayment(
+    subscription: Subscription,
+    retryCount = 0,
+  ): Promise<void> {
     const subscriptionId = subscription.id;
 
     // Mark as processing
@@ -275,18 +296,18 @@ export class ShadeAgent {
 
       // Create a KeyPair object from the private key
       const nearKeyPair = KeyPair.fromString(keyPair.privateKey);
-      
+
       // Set the key in the keystore for this account
       // This is needed because contractCall will use the key from the keystore
-      const { setKey } = await import('./near-provider.js');
+      const { setKey } = await import("./near-provider.js");
       setKey(_accountId, keyPair.privateKey);
 
       // Call the contract to process the payment
-      const result = await contractCall({
+      const result = (await contractCall({
         accountId: _accountId,
         methodName: "process_payment",
         args: { subscription_id: subscriptionId },
-      }) as PaymentResult;
+      })) as PaymentResult;
 
       // Check if payment was successful
       if (result && result.success) {

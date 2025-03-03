@@ -5,7 +5,7 @@ export enum SubscriptionStatus {
   ACTIVE = "ACTIVE",
   PAUSED = "PAUSED",
   CANCELED = "CANCELED",
-  FAILED = "FAILED"
+  FAILED = "FAILED",
 }
 
 /**
@@ -18,14 +18,14 @@ export enum SubscriptionFrequency {
   WEEKLY = "WEEKLY",
   MONTHLY = "MONTHLY",
   QUARTERLY = "QUARTERLY",
-  YEARLY = "YEARLY"
+  YEARLY = "YEARLY",
 }
 
 /**
  * Payment method enum
  */
 export enum PaymentMethod {
-  NEAR = "NEAR"
+  NEAR = "NEAR",
 }
 
 /**

@@ -21,7 +21,7 @@ import {
   setKey,
   TappdClient,
   shadeAgent,
-  getBalance
+  getBalance,
 } from "@ping-subscription/sdk";
 import { WorkerStatus, Subscription } from "@ping-subscription/types";
 
@@ -106,8 +106,8 @@ app.get("/api/derive", async (c: any) => {
   const hash = await crypto.subtle.digest(
     "SHA-256",
     Buffer.concat([
-      Buffer.from(randomArray), 
-      Buffer.from(keyFromTee.asUint8Array(32))
+      Buffer.from(randomArray),
+      Buffer.from(keyFromTee.asUint8Array(32)),
     ]),
   );
 
@@ -211,11 +211,11 @@ app.get("/api/isVerified", async (c: any) => {
 app.get("/api/balance", async (c: any) => {
   try {
     const accountId = c.req.query("accountId");
-    
+
     if (!accountId) {
       return c.json({ error: "Account ID is required" }, 400);
     }
-    
+
     const balance = await getBalance(accountId);
     return c.json(balance);
   } catch (error) {
@@ -269,7 +269,7 @@ app.post("/api/monitor", async (c: any) => {
                 status: status.status,
                 retryCount: status.retryCount,
               };
-            }
+            },
           ),
         });
 
@@ -312,16 +312,14 @@ app.post("/api/keys", async (c: any) => {
 
         // Store the key in the shade agent
         const success = await shadeAgent.securelyStoreKey(
-          subscriptionId, 
+          subscriptionId,
           privateKey,
-          publicKey
+          publicKey,
         );
 
         return c.json({
           success,
-          message: success 
-            ? "Key stored successfully" 
-            : "Failed to store key",
+          message: success ? "Key stored successfully" : "Failed to store key",
         });
       }
 
@@ -364,22 +362,22 @@ app.post("/api/subscription", async (c: any) => {
 
       case "registerKey": {
         const { publicKey } = params;
-        
+
         if (!subscriptionId || !publicKey) {
           return c.json({ error: "Missing required parameters" }, 400);
         }
-        
+
         await contractCall({
           methodName: "register_subscription_key",
-          args: { 
+          args: {
             subscription_id: subscriptionId,
-            public_key: publicKey
+            public_key: publicKey,
           },
         });
 
-        return c.json({ 
-          success: true, 
-          message: "Subscription key registered" 
+        return c.json({
+          success: true,
+          message: "Subscription key registered",
         });
       }
 
@@ -482,10 +480,14 @@ app.get("/", async (c: any) => {
 app.get("*", async (c: any) => {
   // Skip API routes and asset routes
   const path = c.req.path;
-  if (path.startsWith("/api/") || path.startsWith("/assets/") || path.startsWith("/public/")) {
+  if (
+    path.startsWith("/api/") ||
+    path.startsWith("/assets/") ||
+    path.startsWith("/public/")
+  ) {
     return c.notFound();
   }
-  
+
   try {
     const indexPath =
       process.env.NODE_ENV === "production"
