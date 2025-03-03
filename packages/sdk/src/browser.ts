@@ -5,7 +5,7 @@ import {
   WorkerStatus,
 } from "@pingpay/types";
 import * as nearAPI from "near-api-js";
-const { KeyPair } = nearAPI;
+const { KeyPair, transactions } = nearAPI;
 
 /**
  * SDK configuration options
@@ -340,37 +340,29 @@ export class SubscriptionSDK {
   } {
     // Generate a new key pair
     const keyPair = KeyPair.fromRandom("ed25519");
-    const publicKey = keyPair.getPublicKey().toString();
+    const publicKey = keyPair.getPublicKey();
     const privateKey = keyPair.toString();
 
-    // Create a transaction to add the function call access key
-    // This will allow the key to only call the process_payment method on the contract
-    // with a specific allowance
+    // Define the function call access key with specific method names and allowance
+    const accessKey = transactions.functionCallAccessKey(
+      contractId,
+      ["process_payment"],
+      BigInt(allowance),
+    );
+
+    // Create an action to add the key
+    const action = transactions.addKey(publicKey, accessKey);
+
+    // Create a transaction object
     const transaction = {
       receiverId: accountId,
-      actions: [
-        {
-          type: "addKey",
-          params: {
-            publicKey: publicKey,
-            accessKey: {
-              nonce: 0,
-              permission: {
-                type: "FunctionCall",
-                methodNames: ["process_payment"],
-                contractId: contractId,
-                allowance: allowance,
-              },
-            },
-          },
-        },
-      ],
+      actions: [action],
     };
 
     return {
       transaction,
       keyPair: {
-        publicKey,
+        publicKey: publicKey.toString(),
         privateKey,
       },
     };
