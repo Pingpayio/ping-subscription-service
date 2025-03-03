@@ -1,5 +1,5 @@
 {
-  "name": "@ping-subscription/sdk",
+  "name": "@pingpay/subscription-sdk",
   "version": "0.1.0",
   "description": "SDK for interacting with the Ping Subscription Service",
   "main": "dist/index.js",

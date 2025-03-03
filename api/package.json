@@ -1,5 +1,5 @@
 {
-  "name": "@ping-subscription/api",
+  "name": "@pingpay/subscription-api",
   "private": true,
   "version": "0.1.0",
   "type": "module",
