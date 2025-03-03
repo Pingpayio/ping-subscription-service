@@ -1,5 +1,5 @@
 {
-  "name": "@ping-subscription/types",
+  "name": "@pingpay/types",
   "version": "0.1.0",
   "description": "TypeScript types for Ping Subscription Service",
   "main": "dist/index.js",

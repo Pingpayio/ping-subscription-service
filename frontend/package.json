@@ -1,5 +1,5 @@
 {
-  "name": "@ping-subscription/frontend",
+  "name": "@pingpay/subscription-worker",
   "private": true,
   "version": "0.1.0",
   "type": "module",
