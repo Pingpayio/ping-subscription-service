@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ping-subscription/sdk": "workspace:*"
+    "@pingpay/subscription-sdk": "workspace:*"
   },
   "devDependencies": {
-    "@ping-subscription/types": "workspace:*",
+    "@pingpay/types": "workspace:*",
     "@tailwindcss/postcss": "^4.0.9",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.3",

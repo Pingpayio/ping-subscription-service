@@ -22,8 +22,8 @@ import {
   TappdClient,
   shadeAgent,
   getBalance,
-} from "@ping-subscription/sdk";
-import { WorkerStatus, Subscription } from "@ping-subscription/types";
+} from "@pingpay/subscription-sdk";
+import { WorkerStatus, Subscription } from "@pingpay/types";
 
 // Create Hono app
 const app = new Hono();

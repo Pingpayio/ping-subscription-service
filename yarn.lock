@@ -520,15 +520,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ping-subscription/api@workspace:api":
+"@pingpay/subscription-api@workspace:api":
   version: 0.0.0-use.local
-  resolution: "@ping-subscription/api@workspace:api"
+  resolution: "@pingpay/subscription-api@workspace:api"
   dependencies:
     "@hono/node-server": "npm:^1.13.8"
     "@phala/dcap-qvl-web": "npm:^0.1.0-beta.2"
     "@phala/dstack-sdk": "npm:^0.1.7"
-    "@ping-subscription/sdk": "workspace:*"
-    "@ping-subscription/types": "workspace:*"
+    "@pingpay/subscription-sdk": "workspace:*"
+    "@pingpay/types": "workspace:*"
     "@types/node": "npm:^20.11.30"
     dotenv: "npm:^16.4.7"
     hono: "npm:^4.7.2"
@@ -539,25 +539,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ping-subscription/frontend@workspace:frontend":
+"@pingpay/subscription-sdk@workspace:*, @pingpay/subscription-sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
-  resolution: "@ping-subscription/frontend@workspace:frontend"
+  resolution: "@pingpay/subscription-sdk@workspace:packages/sdk"
   dependencies:
-    "@ping-subscription/sdk": "workspace:*"
-    "@ping-subscription/types": "workspace:*"
-    "@tailwindcss/postcss": "npm:^4.0.9"
-    autoprefixer: "npm:^10.4.20"
-    postcss: "npm:^8.5.3"
-    tailwindcss: "npm:^4.0.9"
-    vite: "npm:^6.2.0"
-  languageName: unknown
-  linkType: soft
-
-"@ping-subscription/sdk@workspace:*, @ping-subscription/sdk@workspace:packages/sdk":
-  version: 0.0.0-use.local
-  resolution: "@ping-subscription/sdk@workspace:packages/sdk"
-  dependencies:
-    "@ping-subscription/types": "npm:^0.1.0"
+    "@pingpay/types": "npm:^0.1.0"
     "@types/node": "npm:^20.11.30"
     dotenv: "npm:^16.4.5"
     near-api-js: "npm:^5.0.1"
@@ -566,9 +552,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ping-subscription/types@npm:^0.1.0, @ping-subscription/types@workspace:*, @ping-subscription/types@workspace:packages/types":
+"@pingpay/subscription-worker@workspace:frontend":
   version: 0.0.0-use.local
-  resolution: "@ping-subscription/types@workspace:packages/types"
+  resolution: "@pingpay/subscription-worker@workspace:frontend"
+  dependencies:
+    "@pingpay/subscription-sdk": "workspace:*"
+    "@pingpay/types": "workspace:*"
+    "@tailwindcss/postcss": "npm:^4.0.9"
+    autoprefixer: "npm:^10.4.20"
+    postcss: "npm:^8.5.3"
+    tailwindcss: "npm:^4.0.9"
+    vite: "npm:^6.2.0"
+  languageName: unknown
+  linkType: soft
+
+"@pingpay/types@npm:^0.1.0, @pingpay/types@workspace:*, @pingpay/types@workspace:packages/types":
+  version: 0.0.0-use.local
+  resolution: "@pingpay/types@workspace:packages/types"
   dependencies:
     typescript: "npm:^5.4.2"
   languageName: unknown
