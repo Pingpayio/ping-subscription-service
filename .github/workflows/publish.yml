@@ -1,0 +1,37 @@
+name: Publish Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build packages
+        run: yarn build:packages
+
+      - name: Publish packages
+        run: |
+          cd packages/types
+          npm publish --access public
+          cd ../sdk
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

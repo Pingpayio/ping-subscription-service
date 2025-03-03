@@ -114,14 +114,61 @@ Once registered, the Worker Agent can monitor subscriptions and process payments
 
 ## Development
 
+### Project Structure
+
+The project is organized as a monorepo with the following components:
+
+- `packages/types`: TypeScript types shared across the project
+- `packages/sdk`: TypeScript SDK for interacting with the subscription service
+- `api`: API server for the subscription service
+- `contract`: Rust smart contract for the subscription service
+- `frontend`: Web frontend for the subscription service
+
 ### Local Development
 
 ```bash
-# Install dependencies
-bun install
+# Install dependencies and build packages
+yarn setup
 
 # Start development server
-bun run dev
+yarn dev
+```
+
+### Using the SDK
+
+The TypeScript SDK provides a simple way to interact with the subscription service:
+
+```typescript
+import { SubscriptionSDK } from '@ping-subscription/sdk';
+
+// Create a new SDK instance
+const sdk = new SubscriptionSDK({
+  apiUrl: 'http://localhost:3000' // Optional, defaults to this value
+});
+
+// Get worker status
+const workerStatus = await sdk.isWorkerVerified();
+
+// Create a subscription
+const result = await sdk.createSubscription({
+  merchantId: 'merchant.near',
+  amount: '1000000000000000000000000', // 1 NEAR
+  frequency: 86400, // Daily in seconds
+  maxPayments: 30
+});
+
+// Get user subscriptions
+const subscriptions = await sdk.getUserSubscriptions('user.near');
+
+// Manage subscriptions
+await sdk.pauseSubscription('subscription-id');
+await sdk.resumeSubscription('subscription-id');
+await sdk.cancelSubscription('subscription-id');
+
+// Monitor subscriptions
+await sdk.startMonitoring();
+await sdk.stopMonitoring();
+const status = await sdk.getMonitoringStatus();
 ```
 
 For making calls to the NEAR Contract, create a local `.env.development.local` file with:
@@ -137,8 +184,8 @@ NEXT_PUBLIC_contractId=[YOUR_PROTOCOL_NAME].[YOUR_NEAR_DEV_ACCOUNT_ID]
 1. Build and push your docker image:
    ```bash
    # Update docker:build and docker:push scripts in package.json first
-   bun run docker:build
-   bun run docker:push
+   yarn run docker:build
+   yarn run docker:push
    ```
 
 2. Update `docker-compose.yaml` with your docker hub account, repository name, and image hash

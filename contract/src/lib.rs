@@ -1,9 +1,9 @@
 use near_sdk::{
     bs58, env,
     json_types::U128,
-    log, near, require,
+    log, near, require, serde_json,
     store::{IterableMap, IterableSet, LookupMap},
-    AccountId, PanicOnDefault,
+    AccountId, Gas, NearToken, PanicOnDefault, Promise,
 };
 
 pub mod collateral;
@@ -46,14 +46,21 @@ impl Contract {
         }
     }
 
-    // Admin methods
+    // HELPER METHODS
 
-    /// Registers a merchant
-    pub fn register_merchant(&mut self, merchant_id: AccountId) {
+    // Require owner
+    pub fn require_owner(&self) {
         require!(
             env::predecessor_account_id() == self.owner_id,
             "Only owner can call this method"
         );
+    }
+
+    // ADMIN METHODS
+
+    /// Registers a merchant
+    pub fn register_merchant(&mut self, merchant_id: AccountId) {
+        self.require_owner(); // We could maybe extend this to the worker as well
         self.merchants.insert(merchant_id.clone());
         log!("Merchant registered: {}", merchant_id);
     }
@@ -63,15 +70,7 @@ impl Contract {
         self.merchants.iter().map(|id| id.clone()).collect()
     }
 
-    // Worker methods
-
-    pub fn require_owner(&self) {
-        require!(
-            env::predecessor_account_id() == self.owner_id,
-            "Only owner can call this method"
-        );
-    }
-
+    // WORKER METHODS
     pub fn require_worker(&self, codehash: String) {
         let worker = self
             .worker_by_account_id
@@ -96,13 +95,13 @@ impl Contract {
         log!("Codehash approved");
     }
 
-    pub fn is_verified_by_approved_codehash(&self) {
+    pub fn is_verified_by_approved_codehash(&self) -> bool {
         let worker = self.get_worker(env::predecessor_account_id());
         require!(
             self.approved_codehashes.contains(&worker.codehash),
             "Worker not approved"
         );
-        log!("The agent abides.");
+        true
     }
 
     pub fn register_worker(
@@ -135,10 +134,10 @@ impl Contract {
             .to_owned()
     }
 
-    // Subscription methods
+    // SUBSCRIPTION METHODS
 
     /// Creates a new subscription
-    pub fn create_subscription(
+    pub fn create_subscription( // can be called directly by user
         &mut self,
         merchant_id: AccountId,
         amount: U128,
@@ -168,12 +167,12 @@ impl Contract {
             SubscriptionFrequency::Yearly => now + 31536000, // 365 days in seconds
         };
 
-        // Create subscription
+        // Create subscription (TODO: verify valid)
         let subscription = Subscription {
             id: subscription_id.clone(),
             user_id: user_id.clone(),
             merchant_id: merchant_id.clone(),
-            amount: amount,
+            amount,
             frequency,
             next_payment_date,
             status: SubscriptionStatus::Active,
@@ -197,7 +196,7 @@ impl Contract {
     /// Registers a function call access key for a subscription
     pub fn register_subscription_key(
         &mut self,
-        public_key: String,
+        public_key: String, // this is used later to generate key pair
         subscription_id: SubscriptionId,
     ) {
         let user_id = env::predecessor_account_id();
@@ -332,11 +331,52 @@ impl Contract {
         subscriptions
     }
 
-    // Payment methods
+    // HELPER METHODS FOR PAYMENTS
+    
+    /// Updates a subscription after a successful payment
+    /// Returns the updated subscription
+    fn update_subscription_after_payment(
+        &mut self,
+        subscription: &Subscription,
+        subscription_id: &SubscriptionId,
+        now: u64,
+    ) -> Subscription {
+        // Clone frequency and calculate next payment date
+        let frequency = subscription.frequency.clone();
+        let next_payment_date = match frequency {
+            SubscriptionFrequency::Daily => now + 86400,
+            SubscriptionFrequency::Weekly => now + 604800,
+            SubscriptionFrequency::Monthly => now + 2592000,
+            SubscriptionFrequency::Quarterly => now + 7776000,
+            SubscriptionFrequency::Yearly => now + 31536000,
+        };
+        
+        // Create a new subscription with updated values
+        let mut updated_subscription = subscription.clone();
+        updated_subscription.payments_made += 1;
+        updated_subscription.next_payment_date = next_payment_date;
+        updated_subscription.updated_at = now;
+
+        // Store updated subscription
+        self.subscriptions
+            .insert(subscription_id.clone(), updated_subscription.clone());
+            
+        updated_subscription
+    }
+    
+    // PAYMENT METHODS
 
     /// Processes a payment for a subscription
+    /// This is called by the API with the generated key pair for stored public key
+    /// And private key stored in API
     pub fn process_payment(&mut self, subscription_id: SubscriptionId) -> PaymentResult {
         let now = env::block_timestamp() / 1000000000;
+
+        // Verify caller is an approved worker
+        require!(
+            self.is_verified_by_approved_codehash(),
+            "Not an approved worker"
+        );
 
         // Verify key is authorized for this subscription
         let public_key = env::signer_account_pk();
@@ -417,34 +457,30 @@ impl Contract {
                     }
                 }
 
+                let merchant_id = subscription_clone.merchant_id.clone();
+                let amount = subscription_clone.amount.0;
+                let user_id = subscription_clone.user_id.clone();
+
                 // Process payment based on payment method
                 match subscription.payment_method {
                     PaymentMethod::Near => {
-                        // Transfer NEAR to merchant
-                        // Note: In a real implementation, this would use env::transfer_near or similar
+                        // Transfer NEAR from user to merchant
+                        Promise::new(merchant_id.clone())
+                            .transfer(NearToken::from_yoctonear(amount));
+
                         log!(
-                            "Transferring {} NEAR to {}",
-                            subscription.amount.0,
-                            subscription.merchant_id
+                            "Transferring {} NEAR from {} to {}",
+                            amount,
+                            user_id,
+                            merchant_id
                         );
 
-                        // Update subscription
-                        subscription.payments_made += 1;
-
-                        // Calculate next payment date
-                        subscription.next_payment_date = match subscription.frequency {
-                            SubscriptionFrequency::Daily => now + 86400,
-                            SubscriptionFrequency::Weekly => now + 604800,
-                            SubscriptionFrequency::Monthly => now + 2592000,
-                            SubscriptionFrequency::Quarterly => now + 7776000,
-                            SubscriptionFrequency::Yearly => now + 31536000,
-                        };
-
-                        subscription.updated_at = now;
-
-                        // Store updated subscription
-                        self.subscriptions
-                            .insert(subscription_id.clone(), subscription);
+                        // Update subscription using helper method
+                        self.update_subscription_after_payment(
+                            &subscription_clone,
+                            &subscription_id,
+                            now
+                        );
 
                         PaymentResult {
                             success: true,
@@ -455,31 +491,37 @@ impl Contract {
                         }
                     }
                     PaymentMethod::Ft { token_id } => {
-                        // In a real implementation, this would use cross-contract calls to transfer tokens
+                        // Prepare the FT transfer arguments
+                        let ft_transfer_args = serde_json::json!({
+                            "receiver_id": merchant_id.to_string(),
+                            "amount": amount.to_string(),
+                            "memo": format!("Subscription payment: {}", subscription_id)
+                        })
+                        .to_string()
+                        .into_bytes();
+
+                        // Make the cross-contract call
+                        Promise::new(token_id.clone()).function_call(
+                            "ft_transfer".to_string(),
+                            ft_transfer_args,
+                            NearToken::from_yoctonear(1), // 1 yoctoNEAR deposit
+                            Gas::from_tgas(10), // Allocate gas for the cross-contract call
+                        );
+
                         log!(
-                            "Transferring {} tokens from {} to {}",
-                            subscription.amount.0,
-                            token_id,
-                            subscription.merchant_id
+                            "Transferring {} tokens from {} to {} via {}",
+                            amount,
+                            user_id,
+                            merchant_id,
+                            token_id
                         );
 
                         // Update subscription
-                        subscription.payments_made += 1;
-
-                        // Calculate next payment date
-                        subscription.next_payment_date = match subscription.frequency {
-                            SubscriptionFrequency::Daily => now + 86400,
-                            SubscriptionFrequency::Weekly => now + 604800,
-                            SubscriptionFrequency::Monthly => now + 2592000,
-                            SubscriptionFrequency::Quarterly => now + 7776000,
-                            SubscriptionFrequency::Yearly => now + 31536000,
-                        };
-
-                        subscription.updated_at = now;
-
-                        // Store updated subscription
-                        self.subscriptions
-                            .insert(subscription_id.clone(), subscription_clone.clone());
+                        self.update_subscription_after_payment(
+                            &subscription_clone,
+                            &subscription_id,
+                            now
+                        );
 
                         PaymentResult {
                             success: true,
@@ -511,9 +553,8 @@ impl Contract {
         let mut count = 0;
 
         // Verify caller is an approved worker
-        let worker = self.get_worker(env::predecessor_account_id());
         require!(
-            self.approved_codehashes.contains(&worker.codehash.clone()),
+            self.is_verified_by_approved_codehash(), // idk if we need this to be approved by codehash tho
             "Not an approved worker"
         );
 

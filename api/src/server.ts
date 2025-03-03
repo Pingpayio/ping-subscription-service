@@ -1,8 +1,9 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { serveStatic } from "hono/serve-static";
-import { logger } from "hono/logger";
 import * as dotenv from "dotenv";
+import { Hono } from "hono";
+import { logger } from "hono/logger";
+import fs from "fs";
+import path from "path";
 
 // Load environment variables
 if (process.env.NODE_ENV !== "production") {
@@ -12,17 +13,17 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Import utilities
-import { shadeAgent } from "./utils/shade-agent.js";
-import { TappdClient } from "./utils/tappd.js";
 import { generateSeedPhrase } from "near-seed-phrase";
 import {
-  setKey,
-  getImplicit,
-  getAccount,
   contractCall,
   contractView,
+  getImplicit,
+  setKey,
+  TappdClient,
+  shadeAgent,
   getBalance,
-} from "./utils/near-provider.js";
+} from "@ping-subscription/sdk";
+import { WorkerStatus, Subscription } from "@ping-subscription/types";
 
 // Create Hono app
 const app = new Hono();
@@ -30,12 +31,8 @@ const app = new Hono();
 // Middleware
 app.use(logger());
 
-// Serve static files
-import fs from "fs";
-import path from "path";
-
 // Serve static files from the public directory
-app.get("/public/*", async (c) => {
+app.get("/public/*", async (c: any) => {
   const filePath = c.req.path.replace("/public/", "");
   const fullPath = path.join("./public", filePath);
 
@@ -53,7 +50,7 @@ app.get("/public/*", async (c) => {
 });
 
 // Helper function to determine content type
-function getContentType(filePath) {
+function getContentType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   switch (ext) {
     case ".html":
@@ -84,12 +81,12 @@ crypto.getRandomValues(randomArray);
 
 // API Routes
 // Derive endpoint
-app.get("/api/derive", async (c) => {
+app.get("/api/derive", async (c: any) => {
   // env dev
   if (process.env.NEXT_PUBLIC_accountId !== undefined) {
     return c.json({
       accountId: process.env.NEXT_PUBLIC_accountId,
-    });
+    } as WorkerStatus);
   }
 
   // env prod in TEE
@@ -108,11 +105,16 @@ app.get("/api/derive", async (c) => {
   // hash of in-memory and TEE entropy
   const hash = await crypto.subtle.digest(
     "SHA-256",
-    Buffer.concat([randomArray, keyFromTee.asUint8Array(32)]),
+    Buffer.concat([
+      Buffer.from(randomArray),
+      Buffer.from(keyFromTee.asUint8Array(32)),
+    ]),
   );
 
   // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
-  const data = generateSeedPhrase(hash);
+  // Convert ArrayBuffer to Buffer for generateSeedPhrase
+  const hashBuffer = Buffer.from(new Uint8Array(hash));
+  const data = generateSeedPhrase(hashBuffer);
   const accountId = getImplicit(data.publicKey);
 
   // set the secretKey (inMemoryKeyStore only)
@@ -120,11 +122,11 @@ app.get("/api/derive", async (c) => {
 
   return c.json({
     accountId,
-  });
+  } as WorkerStatus);
 });
 
 // Register endpoint
-app.get("/api/register", async (c) => {
+app.get("/api/register", async (c: any) => {
   // env dev
   if (process.env.NEXT_PUBLIC_accountId !== undefined) {
     // getting collateral won't work with a simulated TEE quote
@@ -132,7 +134,7 @@ app.get("/api/register", async (c) => {
       "cannot register while running tappd simulator:",
       process.env.DSTACK_SIMULATOR_ENDPOINT,
     );
-    return c.json({ registered: false });
+    return c.json({ registered: false } as WorkerStatus);
   }
 
   // env prod in TEE
@@ -165,7 +167,7 @@ app.get("/api/register", async (c) => {
   collateral = JSON.stringify(res2.quote_collateral);
 
   // register the worker (returns bool)
-  const res3 = await contractCall({
+  const res3 = await contractCall<boolean>({
     methodName: "register_worker",
     args: {
       quote_hex,
@@ -175,11 +177,11 @@ app.get("/api/register", async (c) => {
     },
   });
 
-  return c.json({ registered: res3 });
+  return c.json({ registered: res3 } as WorkerStatus);
 });
 
 // IsVerified endpoint
-app.get("/api/isVerified", async (c) => {
+app.get("/api/isVerified", async (c: any) => {
   const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
   const client = new TappdClient(endpoint);
 
@@ -202,11 +204,28 @@ app.get("/api/isVerified", async (c) => {
     verified = false;
   }
 
-  return c.json({ verified });
+  return c.json({ verified } as WorkerStatus);
+});
+
+// Balance endpoint
+app.get("/api/balance", async (c: any) => {
+  try {
+    const accountId = c.req.query("accountId");
+
+    if (!accountId) {
+      return c.json({ error: "Account ID is required" }, 400);
+    }
+
+    const balance = await getBalance(accountId);
+    return c.json(balance);
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return c.json({ error: (error as Error).message }, 500);
+  }
 });
 
 // Monitor endpoint
-app.post("/api/monitor", async (c) => {
+app.post("/api/monitor", async (c: any) => {
   try {
     const body = await c.req.json();
     const { action, interval } = body;
@@ -243,11 +262,14 @@ app.post("/api/monitor", async (c) => {
           success: true,
           isMonitoring: shadeAgent.isMonitoring,
           processingQueue: Array.from(shadeAgent.processingQueue.entries()).map(
-            ([id, status]) => ({
-              id,
-              status: status.status,
-              retryCount: status.retryCount,
-            }),
+            (entry) => {
+              const [id, status] = entry;
+              return {
+                id,
+                status: status.status,
+                retryCount: status.retryCount,
+              };
+            },
           ),
         });
 
@@ -256,12 +278,12 @@ app.post("/api/monitor", async (c) => {
     }
   } catch (error) {
     console.error("Error handling monitoring request:", error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
 // Merchants endpoint
-app.get("/api/merchants", async (c) => {
+app.get("/api/merchants", async (c: any) => {
   try {
     const merchants = await contractView({
       methodName: "get_merchants",
@@ -271,22 +293,57 @@ app.get("/api/merchants", async (c) => {
     return c.json({ merchants });
   } catch (error) {
     console.error("Error fetching merchants:", error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
+  }
+});
+
+// Keys endpoint for managing subscription keys
+app.post("/api/keys", async (c: any) => {
+  try {
+    const body = await c.req.json();
+    const { action, subscriptionId, privateKey, publicKey } = body;
+
+    switch (action) {
+      case "store": {
+        // Validate inputs
+        if (!subscriptionId || !privateKey || !publicKey) {
+          return c.json({ error: "Missing required parameters" }, 400);
+        }
+
+        // Store the key in the shade agent
+        const success = await shadeAgent.securelyStoreKey(
+          subscriptionId,
+          privateKey,
+          publicKey,
+        );
+
+        return c.json({
+          success,
+          message: success ? "Key stored successfully" : "Failed to store key",
+        });
+      }
+
+      default:
+        return c.json({ error: "Invalid action" }, 400);
+    }
+  } catch (error) {
+    console.error("Error handling key management request:", error);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
 // Subscription endpoint
-app.post("/api/subscription", async (c) => {
+app.post("/api/subscription", async (c: any) => {
   try {
     const body = await c.req.json();
     const { action, subscriptionId, ...params } = body;
 
     switch (action) {
-      case "create":
+      case "create": {
         const { merchantId, amount, frequency, maxPayments, tokenAddress } =
           params;
 
-        const result = await contractCall({
+        const result = await contractCall<{ subscription_id: string }>({
           methodName: "create_subscription",
           args: {
             merchant_id: merchantId,
@@ -301,59 +358,86 @@ app.post("/api/subscription", async (c) => {
           success: true,
           subscriptionId: result.subscription_id,
         });
+      }
 
-      case "get":
-        const subscription = await contractView({
+      case "registerKey": {
+        const { publicKey } = params;
+
+        if (!subscriptionId || !publicKey) {
+          return c.json({ error: "Missing required parameters" }, 400);
+        }
+
+        await contractCall({
+          methodName: "register_subscription_key",
+          args: {
+            subscription_id: subscriptionId,
+            public_key: publicKey,
+          },
+        });
+
+        return c.json({
+          success: true,
+          message: "Subscription key registered",
+        });
+      }
+
+      case "get": {
+        const subscription = await contractView<Subscription>({
           methodName: "get_subscription",
           args: { subscription_id: subscriptionId },
         });
 
         return c.json({ subscription });
+      }
 
-      case "list":
+      case "list": {
         const { accountId } = params;
-        const subscriptions = await contractView({
+        const subscriptions = await contractView<Subscription[]>({
           methodName: "get_user_subscriptions",
           args: { account_id: accountId },
         });
 
         return c.json({ subscriptions });
+      }
 
-      case "pause":
+      case "pause": {
         await contractCall({
           methodName: "pause_subscription",
           args: { subscription_id: subscriptionId },
         });
 
         return c.json({ success: true, message: "Subscription paused" });
+      }
 
-      case "resume":
+      case "resume": {
         await contractCall({
           methodName: "resume_subscription",
           args: { subscription_id: subscriptionId },
         });
 
         return c.json({ success: true, message: "Subscription resumed" });
+      }
 
-      case "cancel":
+      case "cancel": {
         await contractCall({
           methodName: "cancel_subscription",
           args: { subscription_id: subscriptionId },
         });
 
         return c.json({ success: true, message: "Subscription canceled" });
+      }
 
       default:
         return c.json({ error: "Invalid action" }, 400);
     }
   } catch (error) {
     console.error("Error handling subscription request:", error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
 // Serve static files from the dist directory (Vite build output)
-app.get("/assets/*", async (c) => {
+app.get("/assets/*", async (c: any) => {
   const filePath = c.req.path.replace("/assets/", "");
   const fullPath = path.join("./dist/assets", filePath);
 
@@ -371,14 +455,14 @@ app.get("/assets/*", async (c) => {
 });
 
 // Root route - serve the index.html file
-app.get("/", async (c) => {
+app.get("/", async (c: any) => {
   try {
-    // In development, serve from the root index.html
+    // In development, serve from the frontend directory
     // In production, serve from the Vite build output
     const indexPath =
       process.env.NODE_ENV === "production"
         ? "./dist/index.html"
-        : "./index.html";
+        : "./frontend/index.html";
 
     const content = await fs.promises.readFile(indexPath);
     return new Response(content, {
@@ -392,11 +476,41 @@ app.get("/", async (c) => {
   }
 });
 
+// Catch-all route for SPA routing - serve index.html for any unmatched routes
+app.get("*", async (c: any) => {
+  // Skip API routes and asset routes
+  const path = c.req.path;
+  if (
+    path.startsWith("/api/") ||
+    path.startsWith("/assets/") ||
+    path.startsWith("/public/")
+  ) {
+    return c.notFound();
+  }
+
+  try {
+    const indexPath =
+      process.env.NODE_ENV === "production"
+        ? "./dist/index.html"
+        : "./frontend/index.html";
+
+    const content = await fs.promises.readFile(indexPath);
+    return new Response(content, {
+      headers: {
+        "Content-Type": "text/html",
+      },
+    });
+  } catch (e) {
+    console.error("Error serving index.html for SPA route:", e);
+    return c.notFound();
+  }
+});
+
 // Start the server
 const port = process.env.PORT || 3000;
 console.log(`Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,
-  port,
+  port: Number(port),
 });
