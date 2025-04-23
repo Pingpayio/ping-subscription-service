@@ -1,47 +1,89 @@
 
 import React from 'react';
 
-// CSS styles for the carousel
+// CSS-in-JS styles for the carousel, provided to the page as a <style> tag.
 export const CarouselStyles: React.FC = () => (
   <style>
     {`
-      .carousel-item, .carousel-item img {
+      @media (max-width: 768px) {
+        .carousel-item,
+        .carousel-item img {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        .token-mask,
+        .token-image {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+      }
+
+      /* Enhanced global carousel styling with GPU acceleration */
+      .carousel-item,
+      .carousel-item img,
+      .carousel-slide img,
+      .carousel-slide,
+      .carousel-slide > div,
+      .token-mask,
+      .token-image {
         background-color: transparent !important;
+        background: transparent !important;
         border: none !important;
         outline: none !important;
         box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-box-shadow: none !important;
+        image-rendering: -webkit-optimize-contrast;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      
+
+      .carousel-item,
+      .carousel-item img {
+        display: flex !important;
+        min-height: 180px !important;
+      }
+
       img {
         background-color: transparent !important;
         mix-blend-mode: normal !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        image-rendering: -webkit-optimize-contrast;
+        transform: translateZ(0);
+        backface-visibility: hidden;
       }
-      
+
       .token-mask {
         width: 180px;
         height: 180px;
         border-radius: 50%;
         overflow: hidden;
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
-        background-color: transparent;
+        background-color: transparent !important;
         position: relative;
+        visibility: visible !important;
+        opacity: 1 !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
       }
 
-      /* Inner mask to ensure no purple lines are visible */
-      .token-mask::after {
-        content: '';
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        border-radius: 50%;
-        box-shadow: 0 0 0 5px #000; /* Black shadow to cover any lines */
-        pointer-events: none;
+      /* Remove the inner mask that may be causing the faint line */
+      .token-mask::after,
+      .token-mask::before {
+        display: none !important;
+        content: none !important;
       }
-      
+
       /* Ensure all token images have consistent size */
       .token-image {
         width: 75% !important;
@@ -53,26 +95,40 @@ export const CarouselStyles: React.FC = () => (
         left: 50% !important;
         top: 50% !important;
         transform: translate(-50%, -50%) !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+        background-color: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        mix-blend-mode: normal !important;
       }
     `}
   </style>
 );
 
-// Container styles for transparent elements
+// Style objects for use in inline React styles elsewhere
 export const containerStyle: React.CSSProperties = {
   backgroundColor: 'transparent',
+  background: 'transparent',
   border: 'none',
   outline: 'none',
   boxShadow: 'none',
-  borderRadius: '0'
+  borderRadius: '0',
+  display: 'flex',
+  visibility: 'visible',
+  opacity: 1,
+  padding: 0,
+  margin: 0,
 };
 
-// Standardized container size for all tokens
 export const imageContainerStyle: React.CSSProperties = {
   ...containerStyle,
   padding: '0',
   margin: '0',
   background: 'transparent',
+  backgroundColor: 'transparent',
   isolation: 'isolate',
   position: 'relative',
   width: '180px',
@@ -81,22 +137,35 @@ export const imageContainerStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
-  borderRadius: '50%', // Circular mask
-};
-
-// Standardized image style for consistent appearance
-export const imageStyle: React.CSSProperties = {
-  backgroundColor: 'transparent',
+  borderRadius: '50%',
+  visibility: 'visible',
+  opacity: 1,
   border: 'none',
   outline: 'none',
   boxShadow: 'none',
-  width: '75%', // Fixed percentage for all images
-  height: '75%', // Fixed percentage for all images
+  transform: 'translateZ(0)',
+  backfaceVisibility: 'hidden',
+};
+
+export const imageStyle: React.CSSProperties = {
+  backgroundColor: 'transparent',
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  boxShadow: 'none',
+  width: '75%',
+  height: '75%',
   objectFit: 'contain',
   display: 'block',
-  mixBlendMode: 'normal',
+  mixBlendMode: 'normal' as const, // Ensures TS compatibility
   position: 'absolute',
   left: '50%',
   top: '50%',
-  transform: 'translate(-50%, -50%)', // Center both horizontally and vertically
+  transform: 'translate(-50%, -50%) translateZ(0)',
+  visibility: 'visible',
+  opacity: 1,
+  padding: 0,
+  margin: 0,
+  imageRendering: '-webkit-optimize-contrast',
+  backfaceVisibility: 'hidden',
 };

@@ -1,0 +1,144 @@
+
+/* ========================================
+   Carousel-Specific Animations & Styling 
+   ======================================== */
+
+/* Mobile responsiveness override for carousel */
+@media (max-width: 768px) {
+  .carousel-item,
+  .carousel-item img {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .token-mask,
+  .token-image {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Enhanced global carousel styling with GPU acceleration */
+.carousel-item,
+.carousel-item img,
+.carousel-slide img,
+.carousel-slide,
+.carousel-slide > div,
+.token-mask,
+.token-image {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  -webkit-box-shadow: none !important;
+  image-rendering: -webkit-optimize-contrast;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* User-suggested styles for fixing rendering artifacts */
+.carousel-slide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0); /* Force GPU rendering */
+  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-mask-image: none;
+}
+
+.carousel-slide {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.carousel-item,
+.carousel-item img {
+  display: flex !important;
+  min-height: 180px !important;
+}
+
+img {
+  background-color: transparent !important;
+  mix-blend-mode: normal !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  image-rendering: -webkit-optimize-contrast;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.token-mask {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent !important;
+  position: relative;
+  visibility: visible !important;
+  opacity: 1 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove the inner mask that may be causing a faint line */
+.token-mask::after,
+.token-mask::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Ensure all token images have consistent size */
+.token-image {
+  width: 75% !important;
+  height: 75% !important;
+  max-width: 75% !important;
+  max-height: 75% !important;
+  object-fit: contain !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Continuous carousel scrolling animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.continuous-scroll {
+  animation: scroll 30s linear infinite; /* Slower, consistent speed */
+  transform: translate3d(0, 0, 0); /* Force GPU acceleration */
+  will-change: transform; /* Hint for browser optimization */
+}
