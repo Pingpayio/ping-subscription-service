@@ -1,0 +1,36 @@
+{
+  "name": "@pingpay/scheduler",
+  "packageManager": "yarn@4.9.1",
+  "version": "1.0.0",
+  "description": "A robust and flexible job scheduler service",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "build:worker": "bun build ./src/worker.ts --outdir ./dist --target node",
+    "start": "bun run ./dist/index.js",
+    "start:worker": "bun run ./dist/worker.js",
+    "start:all": "bun run start & bun run start:worker",
+    "dev": "bun --watch src/index.ts",
+    "dev:worker": "bun --watch src/worker.ts",
+    "db:init": "bun run src/db/init.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "axios": "^1.8.4",
+    "bullmq": "^5.49.2",
+    "cron-parser": "^5.1.1",
+    "dotenv": "^16.5.0",
+    "hono": "^4.7.7",
+    "pg": "^8.15.1",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/pg": "^8.11.13",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.8.3"
+  }
+}
