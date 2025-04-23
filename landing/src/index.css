@@ -268,17 +268,3 @@
     background-position: 0% 0%;
   }
 }
-
-/* Continuous carousel scrolling */
-@keyframes scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-.continuous-scroll {
-  animation: scroll 30s linear infinite; /* Updated from 15s to 30s for a slower, consistent speed */
-}

@@ -1,4 +1,3 @@
-
 import React from "react";
 
 // Paths to logo & icons
@@ -28,7 +27,7 @@ const Footer: React.FC = () => (
         />
       </div>
       <div>
-        <span className="text-xs md:text-sm text-[#E9DFFC] font-normal select-none block leading-[1.4]">
+        <span className="text-xs md:text-sm text-[#E9DFFC] font-normal select-none block leading-[1.4] whitespace-nowrap overflow-hidden text-ellipsis">
           The Payment Layer for the Future of Commerce
         </span>
       </div>
@@ -90,4 +89,3 @@ const Footer: React.FC = () => (
 );
 
 export default Footer;
-

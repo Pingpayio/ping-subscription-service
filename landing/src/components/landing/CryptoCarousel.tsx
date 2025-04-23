@@ -31,20 +31,36 @@ const CryptoCarousel: React.FC = () => {
     
       <div 
         className="w-full max-w-[1000px] px-8 md:px-4 mx-auto overflow-hidden" 
-        style={containerStyle}
+        style={{
+          ...containerStyle,
+          backgroundColor: 'transparent',
+          background: 'transparent'
+        }}
       >
         <div 
           className="relative overflow-hidden" 
-          style={containerStyle}
+          style={{
+            ...containerStyle,
+            backgroundColor: 'transparent',
+            background: 'transparent'
+          }}
         >
           <div 
             className="flex whitespace-nowrap" 
-            style={containerStyle}
+            style={{
+              ...containerStyle,
+              backgroundColor: 'transparent',
+              background: 'transparent'
+            }}
           >
             {/* First set of tokens */}
             <div 
               className="flex continuous-scroll" 
-              style={containerStyle}
+              style={{
+                ...containerStyle,
+                backgroundColor: 'transparent',
+                background: 'transparent'
+              }}
             >
               {tokens.map((token) => (
                 <TokenItem key={`first-${token.id}`} token={token} prefix="first" />
@@ -54,7 +70,11 @@ const CryptoCarousel: React.FC = () => {
             {/* Second set of tokens - creates the continuous effect */}
             <div 
               className="flex continuous-scroll" 
-              style={containerStyle}
+              style={{
+                ...containerStyle,
+                backgroundColor: 'transparent',
+                background: 'transparent'
+              }}
             >
               {tokens.map((token) => (
                 <TokenItem key={`second-${token.id}`} token={token} prefix="second" />
