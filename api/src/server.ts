@@ -8,19 +8,20 @@ import path from "path";
 
 dotenv.config();
 
-// Import utilities
-import { generateSeedPhrase } from "near-seed-phrase";
 import {
+  shadeAgent,
+} from "@pingpay/subscription-sdk";
+import { WorkerStatus, Subscription } from "@pingpay/types";
+import {
+  deriveWorkerAccount,
+  registerWorker,
   contractCall,
   contractView,
-  getImplicit,
   setKey,
   setContractId,
   TappdClient,
-  shadeAgent,
   getBalance,
-} from "@pingpay/subscription-sdk";
-import { WorkerStatus, Subscription } from "@pingpay/types";
+} from "@neardefi/shade-agent-js";
 
 // Initialize SDK with environment variables
 if (process.env.CONTRACT_ID) {
@@ -115,36 +116,12 @@ app.get("/api/derive", async (c: any) => {
     } as WorkerStatus);
   }
 
-  // env prod in TEE
-  const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
-  const client = new TappdClient(endpoint);
-
   // Add this check to prevent TEE operations in local dev
   if (process.env.NODE_ENV !== "production") {
     throw new Error("TEE operations only available in production");
   }
 
-  // entropy from TEE hardware
-  const randomString = Buffer.from(randomArray).toString("hex");
-  const keyFromTee = await client.deriveKey(randomString, randomString);
-
-  // hash of in-memory and TEE entropy
-  const hash = await crypto.subtle.digest(
-    "SHA-256",
-    Buffer.concat([
-      Buffer.from(randomArray),
-      Buffer.from(keyFromTee.asUint8Array(32)),
-    ]),
-  );
-
-  // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
-  // Convert ArrayBuffer to Buffer for generateSeedPhrase
-  const hashBuffer = Buffer.from(new Uint8Array(hash));
-  const data = generateSeedPhrase(hashBuffer);
-  const accountId = getImplicit(data.publicKey);
-
-  // set the secretKey (inMemoryKeyStore only)
-  setKey(accountId, data.secretKey);
+  const accountId = await deriveWorkerAccount();
 
   return c.json({
     accountId,
@@ -163,74 +140,45 @@ app.get("/api/register", async (c: any) => {
     return c.json({ registered: false } as WorkerStatus);
   }
 
-  // env prod in TEE
-  const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
-  const client = new TappdClient(endpoint);
-
-  // get tcb info from tappd
-  const { tcb_info } = await client.getInfo();
-  const { app_compose } = JSON.parse(tcb_info);
-  // match 'sha256:' in docker-compose.yaml (arrange docker-compose.yaml accordingly)
-  const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
-
-  // get TDX quote
-  const randomNumString = Math.random().toString();
-  const ra = await client.tdxQuote(randomNumString);
-  const quote_hex = ra.quote.replace(/^0x/, "");
-
-  // get quote collateral
-  const formData = new FormData();
-  formData.append("hex", quote_hex);
-  let collateral, checksum;
-  // WARNING: this endpoint could throw or be offline
-  const res2 = await (
-    await fetch("https://proof.t16z.com/api/upload", {
-      method: "POST",
-      body: formData,
-    })
-  ).json();
-  checksum = res2.checksum;
-  collateral = JSON.stringify(res2.quote_collateral);
-
-  // register the worker (returns bool)
-  const res3 = await contractCall<boolean>({
-    methodName: "register_worker",
-    args: {
-      quote_hex,
-      collateral,
-      checksum,
-      codehash,
-    },
-  });
-
-  return c.json({ registered: res3 } as WorkerStatus);
+  try {
+    const registered = await registerWorker();
+    return c.json({ registered } as WorkerStatus);
+  } catch (error) {
+    console.error("Error registering worker:", error);
+    return c.json({ registered: false, error: (error as Error).message } as WorkerStatus);
+  }
 });
 
 // IsVerified endpoint
 app.get("/api/isVerified", async (c: any) => {
-  const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
-  const client = new TappdClient(endpoint);
-
-  // get tcb info from tappd
-  const { tcb_info } = await client.getInfo();
-  const { app_compose } = JSON.parse(tcb_info);
-  // first sha256: match of docker-compose.yaml will be codehash (arrange docker-compose.yaml accordingly)
-  const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
-
-  let verified = false;
   try {
-    await contractCall({
-      methodName: "is_verified_by_codehash",
-      args: {
-        codehash,
-      },
-    });
-    verified = true;
-  } catch (e) {
-    verified = false;
-  }
+    const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
+    const client = new TappdClient(endpoint);
 
-  return c.json({ verified } as WorkerStatus);
+    // get tcb info from tappd
+    const { tcb_info } = await client.getInfo();
+    const { app_compose } = JSON.parse(tcb_info);
+    // first sha256: match of docker-compose.yaml will be codehash (arrange docker-compose.yaml accordingly)
+    const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
+
+    let verified = false;
+    try {
+      await contractCall({
+        methodName: "is_verified_by_codehash",
+        args: {
+          codehash,
+        },
+      });
+      verified = true;
+    } catch (e) {
+      verified = false;
+    }
+
+    return c.json({ verified } as WorkerStatus);
+  } catch (error) {
+    console.error("Error checking verification status:", error);
+    return c.json({ verified: false, error: (error as Error).message } as WorkerStatus);
+  }
 });
 
 // Balance endpoint
@@ -287,7 +235,9 @@ app.post("/api/monitor", async (c: any) => {
         return c.json({
           success: true,
           isMonitoring: shadeAgent.isMonitoring,
-          processingQueue: Array.from(shadeAgent.processingQueue.entries()).map(
+          processingQueue: Array.from(
+            (shadeAgent.processingQueue as Map<string, { status: string; retryCount: number }>).entries()
+          ).map(
             (entry) => {
               const [id, status] = entry;
               return {
@@ -372,7 +322,7 @@ app.post("/api/subscription", async (c: any) => {
         const { merchantId, amount, frequency, maxPayments, tokenAddress } =
           params;
 
-        const result = await contractCall<{ subscription_id: string }>({
+        const result = await contractCall({
           methodName: "create_subscription",
           args: {
             merchant_id: merchantId,
@@ -411,7 +361,7 @@ app.post("/api/subscription", async (c: any) => {
       }
 
       case "get": {
-        const subscription = await contractView<Subscription>({
+        const subscription = await contractView({
           methodName: "get_subscription",
           args: { subscription_id: subscriptionId },
         });
@@ -421,7 +371,7 @@ app.post("/api/subscription", async (c: any) => {
 
       case "list": {
         const { accountId } = params;
-        const subscriptions = await contractView<Subscription[]>({
+        const subscriptions = await contractView({
           methodName: "get_user_subscriptions",
           args: { account_id: accountId },
         });

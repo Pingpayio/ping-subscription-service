@@ -814,6 +814,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@neardefi/shade-agent-js@npm:^0.0.12":
+  version: 0.0.12
+  resolution: "@neardefi/shade-agent-js@npm:0.0.12"
+  checksum: 10c0/616611ea7d418a2aa0e43f9b829952521943ddd077aebc4424a5c9af46d1b533736557441b418ef07c83a35ec6847bbed258b6ac4df0b28d17f5b7a2829c2fc9
+  languageName: node
+  linkType: hard
+
 "@noble/curves@npm:1.2.0":
   version: 1.2.0
   resolution: "@noble/curves@npm:1.2.0"
@@ -1017,6 +1024,7 @@ __metadata:
   resolution: "@pingpay/subscription-api@workspace:api"
   dependencies:
     "@hono/node-server": "npm:^1.13.8"
+    "@neardefi/shade-agent-js": "npm:^0.0.12"
     "@phala/dcap-qvl-web": "npm:^0.1.0-beta.2"
     "@phala/dstack-sdk": "npm:^0.1.7"
     "@pingpay/subscription-sdk": "workspace:*"
@@ -1035,6 +1043,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@pingpay/subscription-sdk@workspace:packages/sdk"
   dependencies:
+    "@neardefi/shade-agent-js": "npm:^0.0.12"
     "@pingpay/types": "npm:^0.1.0"
     "@types/node": "npm:^20.11.30"
     dotenv: "npm:^16.4.5"

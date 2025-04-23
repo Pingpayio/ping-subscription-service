@@ -1,6 +1,5 @@
 import * as nearAPI from "near-api-js";
-import { contractCall, contractView, getAccount } from "./near-provider.js";
-import { TappdClient } from "./tappd.js";
+import { TappdClient, setKey, getAccount, contractCall, contractView } from "@neardefi/shade-agent-js";
 // Use a default account ID if not provided
 const { KeyPair } = nearAPI;
 
@@ -33,7 +32,7 @@ interface PaymentResult {
  * - Error handling and retries
  */
 export class ShadeAgent {
-  private client: TappdClient;
+  private client: any; // TappdClient from @neardefi/shade-agent-js
   private subscriptionKeys: Map<string, KeyPair>;
   public processingQueue: Map<string, ProcessingStatus>;
   private retryDelays: number[];
@@ -297,7 +296,6 @@ export class ShadeAgent {
 
       // Set the key in the keystore for this account
       // This is needed because contractCall will use the key from the keystore
-      const { setKey } = await import("./near-provider.js");
       setKey(getAccount(), keyPair.privateKey);
 
       // Call the contract to process the payment

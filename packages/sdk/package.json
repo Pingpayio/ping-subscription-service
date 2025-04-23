@@ -17,6 +17,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@neardefi/shade-agent-js": "^0.0.12",
     "@pingpay/types": "^0.1.0",
     "dotenv": "^16.4.5",
     "near-api-js": "^5.0.1",
