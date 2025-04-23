@@ -7,6 +7,7 @@ import SectionHeader from "./SectionHeader";
 const DiscoverSection: React.FC = () => {
   return (
     <section 
+      id="discover-section"
       className="w-full flex flex-col items-center pt-12 md:pt-28 pb-12 md:pb-20 px-4 md:px-10 relative z-10" 
       style={{
         minHeight: "auto",
