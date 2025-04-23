@@ -98,7 +98,7 @@ export class ShadeAgent {
    * @param {string} publicKey - The public key
    * @returns {boolean} - Whether the key was successfully stored
    */
-  async securelyStoreKey(
+  async securelyStoreKey( // securely store data function
     subscriptionId: string,
     privateKey: string,
     publicKey: string,
@@ -112,7 +112,11 @@ export class ShadeAgent {
         const encryptedData = await this.client.deriveKey(
           subscriptionId,
           "subscription_key",
-        );
+        );  // is this encrypted the key pair we need?
+
+        // TODO: Write this encrypted data somewhere...
+        // save to a file?
+        // then store it in persistent storage  (in smart contract?)
 
         // In a real implementation, we would store this in a secure database within the TEE
         // For now, we'll just store it in memory
@@ -144,7 +148,7 @@ export class ShadeAgent {
     try {
       await contractCall({
         accountId: getAccount(),
-        methodName: "register_subscription_key",
+        methodName: "register_subscription_key", // register access key
         args: {
           public_key: publicKey,
           subscription_id: subscriptionId,

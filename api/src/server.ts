@@ -332,13 +332,16 @@ app.post("/api/keys", async (c: any) => {
     switch (action) {
       case "store": {
         // Validate inputs
-        if (!subscriptionId || !privateKey || !publicKey) {
+        if (!subscriptionId || !privateKey || !publicKey) { // we receive a private key and public key.
+          // in the context of crosspost api... private key needs to be provided to the agent that will create new signatures
+          // to sign the backend requests, and then validate to confirm the public key is valid,
+          // and that the message matches the authorization in the smart contract
           return c.json({ error: "Missing required parameters" }, 400);
         }
 
         // Store the key in the shade agent
         const success = await shadeAgent.securelyStoreKey(
-          subscriptionId,
+          subscriptionId, // then we store this key in the 
           privateKey,
           publicKey,
         );

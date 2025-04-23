@@ -129,6 +129,15 @@ const createSubscriptionWithKey = async () => {
     // The subscription is now set up and ready for automatic payments
     // The shade agent will use the stored private key to sign transactions
     // when payments are due
+
+    // okay, so typically, we will expect that each agent is deployed in TEE, and it has the funds to pay gas
+    // pay gas for intents or chain signatures -- like creating a base account from your twitter
+    // twitter matches, you've funded it, the worker uses chain sig to create the account, that you fund, and now it has the keys
+    // and when you talk to the agent, it uses the fund for you
+    // 
+
+    // so we can imagine this dedicated deploy for handling your payments
+    // and it's like an account that you
   } catch (error) {
     console.error("Error in subscription key flow:", error);
   }

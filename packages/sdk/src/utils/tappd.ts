@@ -233,7 +233,7 @@ export class TappdClient {
     return result;
   }
 
-  async deriveKey(
+  async deriveKey( // TODO: this can be replaced with @near-defi/shade-agent-js
     path: string,
     subject: string,
     alt_names?: string[],
@@ -252,9 +252,12 @@ export class TappdClient {
       payload,
     );
 
-    // Add asUint8Array method to the result
-    result.asUint8Array = (length?: number) =>
-      x509key_to_uint8array(result.key, length);
+    Object.defineProperty(result, 'asUint8Array', {
+      get: () => (length?: number) =>
+        x509key_to_uint8array(result.key, length),
+      enumerable: true,
+      configurable: false,
+    });
 
     return Object.freeze(result);
   }
