@@ -80,9 +80,26 @@ The project is now focusing on completing the Shade Agent implementation and dev
 - **Pending**: UI integration, error handling improvements
 
 ### API Service Status
-- **Completed**: Basic API setup, TEE integration, key storage, basic payment processing
-- **In Progress**: Code organization, scheduler integration
-- **Pending**: Payment trigger endpoint, advanced error handling
+- **Completed**: 
+  - Basic API setup with Hono framework
+  - TEE integration and key storage
+  - Basic payment processing
+  - Code organization into services and routes:
+    - Agent service and routes
+    - Scheduler service and routes
+    - Balance service and routes
+    - Static file service and routes
+    - Worker service and routes
+    - Merchant service and routes
+    - Subscription service and routes
+  - Configuration management
+- **In Progress**: 
+  - Scheduler integration
+  - TypeScript improvements
+- **Pending**: 
+  - Payment trigger endpoint implementation
+  - Advanced error handling
+  - Rate limiting implementation
 
 ### Scheduler Service Status
 - **Completed**: Basic service setup, job management API
@@ -162,3 +179,8 @@ The project is now focusing on completing the Shade Agent implementation and dev
 - Integrated TEE functionality into API service:
   - Moved Shade Agent logic into API service
   - Configured TEE environment in API context
+- Reorganized API service architecture:
+  - Created modular services for each domain
+  - Implemented clean route organization
+  - Added configuration management
+  - Improved code maintainability

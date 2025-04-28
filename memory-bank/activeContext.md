@@ -12,6 +12,38 @@ With the smart contract implementation phase complete, the focus is now on:
 
 ## Recent Changes
 
+### API Service Reorganization
+We have reorganized the API service into a more modular and maintainable structure:
+
+1. **Services Layer**
+   - `agent.ts`: TEE agent management and key operations
+   - `balance.ts`: Account balance operations
+   - `scheduler.ts`: Job scheduling and management
+   - `static.ts`: Static file serving utilities
+   - `worker.ts`: Worker operations and verification
+
+2. **Routes Layer**
+   - `agent.ts`: TEE agent endpoints
+   - `balance.ts`: Balance query endpoints
+   - `merchant.ts`: Merchant management endpoints
+   - `scheduler.ts`: Job management endpoints
+   - `static.ts`: Static file serving
+   - `subscription.ts`: Subscription management endpoints
+   - `worker.ts`: Worker operation endpoints
+
+3. **Configuration**
+   - Centralized config management in `config.ts`
+   - Environment variables validation
+   - Service settings and constants
+   - CORS configuration
+   - Static file paths
+
+4. **Types**
+   - Shared interfaces for scheduler jobs
+   - Worker status types
+   - Subscription data types
+
+### Previous Changes
 - Created project repository and initial structure
 - Set up basic smart contract with worker agent verification
 - Documented architecture and implementation plan
