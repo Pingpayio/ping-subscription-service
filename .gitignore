@@ -44,6 +44,3 @@ next-env.d.ts
 
 # contract
 contract/target
-
-memory-bank
-.clinerules

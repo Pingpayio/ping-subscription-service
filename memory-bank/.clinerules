@@ -1,0 +1,79 @@
+# Cline Rules for NEAR Subscription Service
+
+## Project Patterns
+
+### Smart Contract Development
+- Use NEAR SDK v5.7.0 for contract development
+- Follow the pattern of using `#[near(contract_state)]` for contract state
+- Use `#[near(serializers = [json, borsh])]` for serializable structs
+- Implement proper access control with `require_*` methods
+- Use `IterableMap` and `IterableSet` for collections that need iteration
+- Follow the existing pattern for method access control
+
+### Code Style
+- Use 4-space indentation for Rust code
+- Follow Rust naming conventions (snake_case for variables and functions, CamelCase for types)
+- Use descriptive variable and function names
+- Add comments for complex logic
+- Include proper error messages in `require!` statements
+
+### Testing
+- Write unit tests for contract methods
+- Use `near-sdk`'s testing utilities
+- Test both success and failure cases
+- Simulate different user roles (owner, worker, user, merchant)
+
+## Project Intelligence
+
+### Critical Implementation Paths
+- Worker agent verification is a critical security feature
+- Function call access key registration and verification is essential for subscription payments
+- Payment processing must verify key authorization before transferring funds
+
+### User Preferences
+- Prefer clear, descriptive error messages
+- Focus on security and transparency in subscription management
+- Ensure users have full control over their subscriptions
+
+### Known Challenges
+- TEE attestation verification is complex and requires careful implementation
+- Key management security is critical for the system's security
+- Payment reliability requires robust error handling and retry mechanisms
+
+## Tool Usage Patterns
+
+### NEAR CLI
+- Use for contract deployment and testing
+- Helpful for simulating different user interactions
+
+### Cargo
+- Use for building and testing the smart contract
+- Run tests with `cargo test`
+- Build the contract with `cargo near build`
+
+### Next.js
+- Use for frontend development
+- Run the development server with `npm run dev`
+
+### Docker
+- Use for containerization and deployment
+- Build with `npm run docker:build`
+- Run with `npm run docker:run`
+
+## Implementation Notes
+
+### Smart Contract Structure
+- The contract should maintain separation of concerns between different functionalities
+- Use helper methods for common operations
+- Implement proper access control for all methods
+- Store subscription data in a way that allows efficient querying
+
+### Shade Agent Implementation
+- Ensure secure key generation and storage
+- Implement robust error handling for payment processing
+- Use idempotent operations where possible to prevent duplicate payments
+
+### UI Development
+- Focus on user-friendly subscription management
+- Provide clear feedback for blockchain operations
+- Implement proper error handling for failed transactions
