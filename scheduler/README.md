@@ -2,135 +2,75 @@
 
 A robust and flexible job scheduler service that provides a reliable way to schedule jobs to be executed at specific times or intervals. It leverages BullMQ for queue management and PostgreSQL for persistent job storage.
 
-## Features
+## Technical Architecture
 
-- **Job Scheduling**:
-  - Schedule jobs using cron expressions
-  - Schedule jobs for a specific time (one-time execution)
-  - Schedule recurring jobs with configurable intervals (minute, hour, day, week, month, year)
+### Components
 
-- **Job Persistence**:
-  - Store job definitions in a PostgreSQL database
-  - Track job execution history and status
+1. **API Server (Hono)**
+   - Handles HTTP requests for job management
+   - Serves web interface for job management
+   - Validates job configurations
+   - Manages job persistence in PostgreSQL
+   - Enqueues jobs in BullMQ
 
-- **Job Management API**:
-  - Create, read, update, and delete jobs via a RESTful API
-  - Filter jobs by status
+2. **Worker Process**
+   - Processes jobs from BullMQ queues
+   - Executes HTTP requests to target endpoints
+   - Handles retries and error reporting
+   - Updates job status in PostgreSQL
 
-- **Queue Management**:
-  - Use BullMQ to reliably enqueue and process jobs
-  - Automatic job scheduling based on defined patterns
+### Data Flow
 
-- **Retry Mechanism**:
-  - Automatically retry failed jobs with exponential backoff
-  - Configurable retry attempts
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant DB as PostgreSQL
+    participant Queue as BullMQ
+    participant Worker
+    participant Target as Target System
 
-- **Concurrency Control**:
-  - Limit the number of concurrent job executions
+    Client->>+API: POST /jobs {<br/>  name: "Example Job",<br/>  target: "https://api.example.com",<br/>  payload: { data: "value" }<br/>}
+    API->>API: Validate job config
+    API->>+DB: Store job definition
+    DB-->>-API: Job stored
+    API->>+Queue: Enqueue job with<br/>target & payload
+    Queue-->>-API: Job enqueued
+    API-->>-Client: Job created response
 
-- **Error Handling and Logging**:
-  - Detailed logging of job execution
-  - Store error messages for failed jobs
+    Note over Queue: Job scheduled time reached
 
-- **Flexible Job Types**:
-  - Support HTTP requests with custom payloads
-
-## Technology Stack
-
-- **Framework**: Hono (lightweight web framework)
-- **Queue System**: BullMQ (Redis-based queue system)
-- **Database**: PostgreSQL
-- **Programming Language**: TypeScript
-- **Runtime**: Bun
-
-## Prerequisites
-
-- [Bun](https://bun.sh/) (v1.0.0 or higher)
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) (for local development with containers)
-- PostgreSQL (v12 or higher)
-- Redis (v6 or higher)
-
-## Environment Variables
-
-Create a `.env` file based on the provided `.env.example`:
-
-```
-# PostgreSQL connection string
-POSTGRES_URL=postgresql://username:password@host:port/database
-
-# Redis connection
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# API server port
-PORT=3000
+    Queue->>+Worker: Dequeue job
+    Worker->>Worker: Process job
+    Worker->>+Target: POST request with payload
+    Target-->>-Worker: Response
+    Worker->>+DB: Update job status<br/>& execution results
+    DB-->>-Worker: Status updated
+    Worker-->>-Queue: Job completed
 ```
 
-## Local Development
+## Quick Start
+
+### Prerequisites
+- Docker and Docker Compose
 
 ### Setup
-
 1. Clone the repository
-2. Navigate to the scheduler directory
-3. Install dependencies:
-
+2. Create `.env` file from `.env.example`
+3. Start services:
 ```bash
-bun install
+docker compose up --build
 ```
 
-4. Start PostgreSQL and Redis (using Docker Compose):
+The web interface will be available at `http://localhost:3000`
 
-```bash
-docker-compose up -d postgres redis
-```
+## API Usage
 
-5. Initialize the database:
-
-```bash
-bun run db:init
-```
-
-6. Start the API server in development mode:
-
-```bash
-bun run dev
-```
-
-7. Start the worker in development mode (in a separate terminal):
-
-```bash
-bun run dev:worker
-```
-
-### Using Docker Compose
-
-To run the entire stack (PostgreSQL, Redis, API, and Worker) using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
-This will build and start all the services defined in the `docker-compose.yml` file.
-
-## API Endpoints
-
-### Health Check
-
-```
-GET /health
-```
-
-Returns the current status of the service.
-
-### Create a Job
-
-```
+### Create Job
+```http
 POST /jobs
-```
+Content-Type: application/json
 
-Request body:
-
-```json
 {
   "name": "Example Job",
   "description": "An example job that sends a notification",
@@ -145,43 +85,66 @@ Request body:
 }
 ```
 
-### Get All Jobs
-
+#### List Jobs
+```http
+GET /jobs?status=active
 ```
-GET /jobs
-```
+Query Parameters:
+- `status`: Filter by status (`active`, `inactive`, `failed`)
 
-Optional query parameters:
-- `status`: Filter jobs by status (`active`, `inactive`, `failed`)
-
-### Get a Job by ID
-
-```
+#### Get Job
+```http
 GET /jobs/:id
 ```
 
-### Update a Job
-
-```
+#### Update Job
+```http
 PUT /jobs/:id
+Content-Type: application/json
+
+{
+  // Same schema as Create Job
+}
 ```
 
-Request body: Same as for creating a job.
-
-### Delete a Job
-
-```
+#### Delete Job
+```http
 DELETE /jobs/:id
 ```
 
-## Job Types
+### Job Configuration
 
-Currently, the scheduler supports the following job types:
+#### Schedule Types
 
-### HTTP
+1. **Cron**
+```json
+{
+  "schedule_type": "cron",
+  "cron_expression": "0 * * * *"
+}
+```
 
-Makes an HTTP POST request to the specified target URL with the provided payload.
+2. **Specific Time**
+```json
+{
+  "schedule_type": "specific_time",
+  "specific_time": "2023-12-31T23:59:59Z"
+}
+```
 
+3. **Recurring**
+```json
+{
+  "schedule_type": "recurring",
+  "interval": "day",  // minute, hour, day, week, month, year
+  "interval_value": 1
+}
+```
+Available intervals: `minute`, `hour`, `day`, `week`, `month`, `year`
+
+#### Job Types
+
+Currently supports HTTP jobs:
 ```json
 {
   "type": "http",
@@ -193,91 +156,43 @@ Makes an HTTP POST request to the specified target URL with the provided payload
 }
 ```
 
-## Schedule Types
+## Database Schema
 
-### Cron
-
-Uses a cron expression to define the schedule.
-
-```json
-{
-  "schedule_type": "cron",
-  "cron_expression": "0 * * * *"
-}
+### Jobs Table
+```sql
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  type VARCHAR(50) NOT NULL,
+  target TEXT NOT NULL,
+  payload JSONB,
+  cron_expression VARCHAR(100),
+  schedule_type VARCHAR(50) NOT NULL,
+  specific_time TIMESTAMP WITH TIME ZONE,
+  interval VARCHAR(50),
+  interval_value INTEGER,
+  next_run TIMESTAMP WITH TIME ZONE,
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-### Specific Time
-
-Executes the job once at a specific time.
-
-```json
-{
-  "schedule_type": "specific_time",
-  "specific_time": "2023-12-31T23:59:59Z"
-}
-```
-
-### Recurring
-
-Executes the job at regular intervals.
-
-```json
-{
-  "schedule_type": "recurring",
-  "interval": "day",
-  "interval_value": 1
-}
-```
-
-Available intervals: `minute`, `hour`, `day`, `week`, `month`, `year`.
-
-## Deployment to Railway
-
-### Prerequisites
-
-- [Railway CLI](https://docs.railway.app/develop/cli) installed and authenticated
-- A Railway account
-
-### Steps
-
-1. Create a new project on Railway:
+## Environment Variables
 
 ```bash
-railway init
+# PostgreSQL connection string
+POSTGRES_URL=postgresql://username:password@host:port/database
+
+# Redis connection
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# API server port
+PORT=3000
+
+# Security
+ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
+ALLOWED_TARGET_HOSTS=*.example.com,api.another-domain.com
 ```
-
-2. Add PostgreSQL and Redis services:
-
-```bash
-railway add
-```
-
-Select PostgreSQL and Redis from the list of available plugins.
-
-3. Link your local project to the Railway project:
-
-```bash
-railway link
-```
-
-4. Deploy the scheduler service:
-
-```bash
-railway up
-```
-
-5. Set up environment variables:
-
-```bash
-railway vars set POSTGRES_URL=<your-postgres-url> REDIS_HOST=<your-redis-host> REDIS_PORT=<your-redis-port>
-```
-
-6. Open the deployed service:
-
-```bash
-railway open
-```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

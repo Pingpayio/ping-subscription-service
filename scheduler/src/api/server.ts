@@ -15,9 +15,27 @@ import { calculateInitialDelay, calculateRepeatOptions, calculateNextRun, format
 // Create a new Hono app
 const app = new Hono();
 
+// Parse ALLOWED_ORIGINS from environment variable
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
+let corsOrigin: string | string[] = '*'; // Default to allow all
+
+if (allowedOriginsEnv) {
+  const origins = allowedOriginsEnv.split(',').map(origin => origin.trim()).filter(Boolean);
+  if (origins.length > 0) {
+    corsOrigin = origins;
+  }
+}
+
 // Middleware
 app.use('*', logger());
-app.use('*', cors());
+app.use('*', cors({ 
+  origin: corsOrigin,
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowHeaders: ['Content-Type', 'Authorization'], // Headers the server can read
+  exposeHeaders: ['Content-Length', 'X-Request-Id'], // Headers the client can read
+  maxAge: 600 // Cache preflight requests for 10 minutes
+}));
 
 // Health check endpoint
 app.get('/health', (c) => {

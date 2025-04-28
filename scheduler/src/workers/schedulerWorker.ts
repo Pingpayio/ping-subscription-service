@@ -5,10 +5,55 @@
  */
 import { Worker } from 'bullmq';
 import axios from 'axios';
+import { URL } from 'url';
 import db from '../db/index.js';
 import { QUEUE_NAME } from '../queues/index.js';
 import { JobType, JobStatus } from '../types/job.js';
 import { calculateNextRun, formatDate } from '../lib/scheduler.js';
+
+// Parse ALLOWED_TARGET_HOSTS from environment variable
+const allowedTargetHosts = (process.env.ALLOWED_TARGET_HOSTS || '')
+  .split(',')
+  .map(host => host.trim())
+  .filter(Boolean);
+
+// Validate target URL
+function validateTargetUrl(target: string): boolean {
+  try {
+    const url = new URL(target);
+    
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      console.error(`Invalid protocol ${url.protocol} for target URL ${target}`);
+      return false;
+    }
+    
+    // If allowedTargetHosts is empty, allow all hosts
+    if (allowedTargetHosts.length === 0) {
+      return true;
+    }
+    
+    // Check if the hostname is in the allowed list
+    const isAllowed = allowedTargetHosts.some(allowedHost => {
+      // Support wildcard subdomains (e.g., *.example.com)
+      if (allowedHost.startsWith('*.')) {
+        const domain = allowedHost.slice(2);
+        return url.hostname === domain || url.hostname.endsWith('.' + domain);
+      }
+      return url.hostname === allowedHost;
+    });
+    
+    if (!isAllowed) {
+      console.error(`Target host ${url.hostname} is not in the allowed list`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Invalid target URL ${target}:`, error);
+    return false;
+  }
+}
 
 /**
  * Initialize the BullMQ worker
@@ -40,6 +85,13 @@ export const worker = new Worker(
       
       // Execute the job based on its type
       if (type === JobType.HTTP) {
+        console.log(`Validating target URL ${target}`);
+        
+        // Validate the target URL before making the request
+        if (!validateTargetUrl(target)) {
+          throw new Error(`Invalid or unauthorized target URL: ${target}`);
+        }
+        
         console.log(`Making HTTP request to ${target}`);
         
         // Make the HTTP request
@@ -48,7 +100,9 @@ export const worker = new Worker(
             'Content-Type': 'application/json',
             'User-Agent': 'PingPay-Scheduler/1.0'
           },
-          timeout: 30000 // 30 seconds timeout
+          timeout: 30000, // 30 seconds timeout
+          maxRedirects: 5, // Limit redirects to prevent redirect-based attacks
+          validateStatus: (status) => status >= 200 && status < 300 // Only accept 2xx status codes
         });
         
         console.log(`HTTP request completed with status ${response.status}`);
@@ -57,7 +111,7 @@ export const worker = new Worker(
       }
       
       // Calculate the next run time for recurring jobs
-      let nextRun = null;
+      let nextRun: Date | null = null;
       if (dbJob.schedule_type !== 'specific_time') {
         nextRun = calculateNextRun({
           schedule_type: dbJob.schedule_type,
