@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 
@@ -13,9 +12,10 @@ const TabIndicator: React.FC<TabIndicatorProps> = ({
   activeTab,
   tabCount,
   indicatorClass = "bg-[#AB9FF2]",
-  backgroundClass = "bg-[#2A2A37]"
+  backgroundClass = "bg-[#2A2A37]",
 }) => {
-  const position = activeTab === "supply" ? "0%" : `${100 / tabCount * (tabCount - 1)}%`;
+  const position =
+    activeTab === "supply" ? "0%" : `${(100 / tabCount) * (tabCount - 1)}%`;
   const width = `${100 / tabCount}%`;
 
   return (

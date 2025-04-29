@@ -1,4 +1,3 @@
-
 import React from "react";
 
 interface CarouselImageProps {
@@ -30,20 +29,20 @@ const CarouselImage: React.FC<CarouselImageProps> = ({
     loading="lazy"
     style={{
       ...style,
-      backgroundColor: 'transparent',
-      background: 'transparent',
-      border: 'none',
-      outline: 'none',
-      boxShadow: 'none',
-      mixBlendMode: 'normal',
-      transform: 'translate3d(0, 0, 0)',
-      imageRendering: 'crisp-edges',
-      backfaceVisibility: 'hidden',
+      backgroundColor: "transparent",
+      background: "transparent",
+      border: "none",
+      outline: "none",
+      boxShadow: "none",
+      mixBlendMode: "normal",
+      transform: "translate3d(0, 0, 0)",
+      imageRendering: "crisp-edges",
+      backfaceVisibility: "hidden",
       padding: 0,
       margin: 0,
-      filter: 'none',
-      WebkitFilter: 'none',
-      WebkitMaskImage: 'none',
+      filter: "none",
+      WebkitFilter: "none",
+      WebkitMaskImage: "none",
     }}
     draggable={false}
     decoding="async"

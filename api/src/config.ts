@@ -4,7 +4,7 @@
 export const config = {
   // Server
   port: process.env.PORT || 3000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv: process.env.NODE_ENV || "development",
 
   // NEAR Contract
   contractId: process.env.CONTRACT_ID,
@@ -20,19 +20,20 @@ export const config = {
 
   // Static Files
   staticPaths: {
-    public: './public',
-    assets: './dist/assets',
-    indexHtml: process.env.NODE_ENV === 'production'
-      ? './dist/index.html'
-      : './frontend/index.html',
+    public: "./public",
+    assets: "./dist/assets",
+    indexHtml:
+      process.env.NODE_ENV === "production"
+        ? "./dist/index.html"
+        : "./frontend/index.html",
   },
 
   // CORS
   cors: {
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    origin: "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
     maxAge: 600,
     credentials: true,
   },
@@ -41,13 +42,18 @@ export const config = {
    * Validate required environment variables
    */
   validate() {
-    const required = ['CONTRACT_ID', 'SIGNER_ID', 'SECRET_KEY', 'SCHEDULER_API_URL'];
-    const missing = required.filter(key => !process.env[key]);
+    const required = [
+      "CONTRACT_ID",
+      "SIGNER_ID",
+      "SECRET_KEY",
+      "SCHEDULER_API_URL",
+    ];
+    const missing = required.filter((key) => !process.env[key]);
 
     if (missing.length > 0) {
       console.warn(
-        'Missing required environment variables:',
-        missing.join(', ')
+        "Missing required environment variables:",
+        missing.join(", "),
       );
       return false;
     }

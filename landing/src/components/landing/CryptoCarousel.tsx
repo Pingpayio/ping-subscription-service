@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { TokenInfo } from "@/types/token";
 import { allTokens } from "@/data/tokenData";
@@ -28,56 +27,64 @@ const CryptoCarousel: React.FC = () => {
   return (
     <>
       <CarouselStyles />
-    
-      <div 
-        className="w-full max-w-[1000px] px-8 md:px-4 mx-auto overflow-hidden" 
+
+      <div
+        className="w-full max-w-[1000px] px-8 md:px-4 mx-auto overflow-hidden"
         style={{
           ...containerStyle,
-          backgroundColor: 'transparent',
-          background: 'transparent'
+          backgroundColor: "transparent",
+          background: "transparent",
         }}
       >
-        <div 
-          className="relative overflow-hidden" 
+        <div
+          className="relative overflow-hidden"
           style={{
             ...containerStyle,
-            backgroundColor: 'transparent',
-            background: 'transparent'
+            backgroundColor: "transparent",
+            background: "transparent",
           }}
         >
-          <div 
-            className="flex whitespace-nowrap" 
+          <div
+            className="flex whitespace-nowrap"
             style={{
               ...containerStyle,
-              backgroundColor: 'transparent',
-              background: 'transparent'
+              backgroundColor: "transparent",
+              background: "transparent",
             }}
           >
             {/* First set of tokens */}
-            <div 
-              className="flex continuous-scroll" 
+            <div
+              className="flex continuous-scroll"
               style={{
                 ...containerStyle,
-                backgroundColor: 'transparent',
-                background: 'transparent'
+                backgroundColor: "transparent",
+                background: "transparent",
               }}
             >
               {tokens.map((token) => (
-                <TokenItem key={`first-${token.id}`} token={token} prefix="first" />
+                <TokenItem
+                  key={`first-${token.id}`}
+                  token={token}
+                  prefix="first"
+                />
               ))}
             </div>
 
             {/* Second set of tokens - creates the continuous effect */}
-            <div 
-              className="flex continuous-scroll" 
+            <div
+              className="flex continuous-scroll"
               style={{
                 ...containerStyle,
-                backgroundColor: 'transparent',
-                background: 'transparent'
+                backgroundColor: "transparent",
+                background: "transparent",
               }}
             >
               {tokens.map((token) => (
-                <TokenItem key={`second-${token.id}`} token={token} prefix="second" />
+                <TokenItem
+                  key={`second-${token.id}`}
+                  token={token}
+                  prefix="second"
+                />
               ))}
             </div>
           </div>

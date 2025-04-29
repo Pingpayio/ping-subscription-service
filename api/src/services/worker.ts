@@ -1,10 +1,10 @@
-import { WorkerStatus } from '@pingpay/types';
+import { WorkerStatus } from "@pingpay/types";
 import {
   deriveWorkerAccount,
   registerWorker,
   contractCall,
   TappdClient,
-} from '@neardefi/shade-agent-js';
+} from "@neardefi/shade-agent-js";
 
 /**
  * Service for managing worker operations
@@ -20,8 +20,8 @@ export class WorkerService {
     }
 
     // Add this check to prevent TEE operations in local dev
-    if (process.env.NODE_ENV !== 'production') {
-      throw new Error('TEE operations only available in production');
+    if (process.env.NODE_ENV !== "production") {
+      throw new Error("TEE operations only available in production");
     }
 
     return await deriveWorkerAccount();
@@ -35,7 +35,7 @@ export class WorkerService {
     if (process.env.NEXT_PUBLIC_accountId !== undefined) {
       // getting collateral won't work with a simulated TEE quote
       console.log(
-        'cannot register while running tappd simulator:',
+        "cannot register while running tappd simulator:",
         process.env.DSTACK_SIMULATOR_ENDPOINT,
       );
       return false;
@@ -60,7 +60,7 @@ export class WorkerService {
 
       try {
         await contractCall({
-          methodName: 'is_verified_by_codehash',
+          methodName: "is_verified_by_codehash",
           args: {
             codehash,
           },
@@ -70,8 +70,8 @@ export class WorkerService {
         return false;
       }
     } catch (error) {
-      console.error('Error checking verification status:', error);
-      throw new Error('Failed to verify worker');
+      console.error("Error checking verification status:", error);
+      throw new Error("Failed to verify worker");
     }
   }
 }

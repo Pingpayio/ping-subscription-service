@@ -1,4 +1,4 @@
-import { getBalance } from '@neardefi/shade-agent-js';
+import { getBalance } from "@neardefi/shade-agent-js";
 
 /**
  * Service for managing balance operations
@@ -9,7 +9,7 @@ export class BalanceService {
    */
   async getBalance(accountId: string): Promise<string> {
     if (!accountId) {
-      throw new Error('Account ID is required');
+      throw new Error("Account ID is required");
     }
 
     return await getBalance(accountId);

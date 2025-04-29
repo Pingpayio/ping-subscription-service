@@ -1,13 +1,13 @@
 export interface SchedulerJobConfig {
   name: string;
   description: string;
-  type: 'http';
+  type: "http";
   target: string;
   payload: {
     subscription_id: string;
     [key: string]: any;
   };
-  schedule_type: 'recurring' | 'specific_time' | 'cron';
+  schedule_type: "recurring" | "specific_time" | "cron";
   interval?: string;
   interval_value?: number;
   specific_time?: string;
@@ -30,7 +30,7 @@ export interface Subscription {
   max_payments: number;
   payments_made: number;
   next_payment_date: string;
-  status: 'active' | 'paused' | 'cancelled';
+  status: "active" | "paused" | "cancelled";
   token_address?: string;
   created_at: string;
   updated_at: string;

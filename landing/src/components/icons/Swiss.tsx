@@ -1,4 +1,3 @@
-
 import React from "react";
 
 export const Swiss: React.FC<{ className?: string }> = ({ className }) => {

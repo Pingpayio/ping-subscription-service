@@ -1,59 +1,66 @@
 /**
  * Job type definitions and validation schemas
  */
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Job schedule types
  */
 export enum ScheduleType {
-  CRON = 'cron',
-  SPECIFIC_TIME = 'specific_time',
-  RECURRING = 'recurring',
+  CRON = "cron",
+  SPECIFIC_TIME = "specific_time",
+  RECURRING = "recurring",
 }
 
 /**
  * Job types
  */
 export enum JobType {
-  HTTP = 'http',
+  HTTP = "http",
 }
 
 /**
  * Interval types for recurring jobs
  */
 export enum IntervalType {
-  MINUTE = 'minute',
-  HOUR = 'hour',
-  DAY = 'day',
-  WEEK = 'week',
-  MONTH = 'month',
-  YEAR = 'year',
+  MINUTE = "minute",
+  HOUR = "hour",
+  DAY = "day",
+  WEEK = "week",
+  MONTH = "month",
+  YEAR = "year",
 }
 
 /**
  * Job status types
  */
 export enum JobStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  FAILED = 'failed',
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  FAILED = "failed",
 }
 
 /**
  * Zod schema for job validation
  */
 export const JobSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.nativeEnum(JobType),
-  target: z.string().url('Target must be a valid URL'),
+  target: z.string().url("Target must be a valid URL"),
   payload: z.record(z.any()).optional(),
   schedule_type: z.nativeEnum(ScheduleType),
-  cron_expression: z.string().optional().refine(
-    (val) => !val || val.trim() !== '' || val.split(' ').length === 5 || val.split(' ').length === 6,
-    { message: 'Invalid cron expression format' }
-  ),
+  cron_expression: z
+    .string()
+    .optional()
+    .refine(
+      (val) =>
+        !val ||
+        val.trim() !== "" ||
+        val.split(" ").length === 5 ||
+        val.split(" ").length === 6,
+      { message: "Invalid cron expression format" },
+    ),
   specific_time: z.string().datetime().optional(),
   interval: z.nativeEnum(IntervalType).optional(),
   interval_value: z.number().int().positive().optional(),

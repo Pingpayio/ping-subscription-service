@@ -1,4 +1,3 @@
-
 import React from "react";
 
 interface SectionHeaderProps {
@@ -13,27 +12,29 @@ interface SectionHeaderProps {
   descriptionClassName?: string; // Custom classes for description
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ 
-  title, 
-  description, 
-  titleColor = "#AB9FF2", 
+const SectionHeader: React.FC<SectionHeaderProps> = ({
+  title,
+  description,
+  titleColor = "#AB9FF2",
   descriptionColor = "#AB9FF2",
   centered = true,
   maxWidth = "full",
   className = "",
   titleClassName = "",
-  descriptionClassName = ""
+  descriptionClassName = "",
 }) => {
   return (
-    <div className={`flex flex-col ${centered ? 'items-center' : 'items-start'} ${className}`}>
-      <h2 
-        className={`text-2xl md:text-4xl font-bold leading-relaxed ${centered ? 'text-center' : 'text-left'} max-w-${maxWidth} mt-0 ${titleClassName}`}
+    <div
+      className={`flex flex-col ${centered ? "items-center" : "items-start"} ${className}`}
+    >
+      <h2
+        className={`text-2xl md:text-4xl font-bold leading-relaxed ${centered ? "text-center" : "text-left"} max-w-${maxWidth} mt-0 ${titleClassName}`}
         style={{ color: titleColor }}
       >
         {title}
       </h2>
-      <p 
-        className={`text-base md:text-xl font-normal leading-normal md:leading-none ${centered ? 'text-center' : 'text-left'} mt-2 max-w-${maxWidth} px-4 ${descriptionClassName}`}
+      <p
+        className={`text-base md:text-xl font-normal leading-normal md:leading-none ${centered ? "text-center" : "text-left"} mt-2 max-w-${maxWidth} px-4 ${descriptionClassName}`}
         style={{ color: descriptionColor }}
       >
         {description}

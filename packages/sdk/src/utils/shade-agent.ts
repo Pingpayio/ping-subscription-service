@@ -1,5 +1,11 @@
 import * as nearAPI from "near-api-js";
-import { TappdClient, setKey, getAccount, contractCall, contractView } from "@neardefi/shade-agent-js";
+import {
+  TappdClient,
+  setKey,
+  getAccount,
+  contractCall,
+  contractView,
+} from "@neardefi/shade-agent-js";
 const { KeyPair } = nearAPI;
 
 interface KeyPair {
@@ -96,7 +102,8 @@ export class ShadeAgent {
    * @param {string} publicKey - The public key
    * @returns {boolean} - Whether the key was successfully stored
    */
-  async securelyStoreKey( // securely store data function
+  async securelyStoreKey(
+    // securely store data function
     subscriptionId: string,
     privateKey: string,
     publicKey: string,
@@ -110,7 +117,7 @@ export class ShadeAgent {
         const encryptedData = await this.client.deriveKey(
           subscriptionId,
           "subscription_key",
-        );  // is this encrypted the key pair we need?
+        ); // is this encrypted the key pair we need?
 
         // TODO: Write this encrypted data somewhere...
         // save to a file?
@@ -263,11 +270,7 @@ export class ShadeAgent {
    * @param {string} subscriptionId - The subscription id
    * @param {number} retryCount - The current retry count
    */
-  async processPayment(
-    subscriptionId: string,
-    retryCount = 0,
-  ): Promise<void> {
-
+  async processPayment(subscriptionId: string, retryCount = 0): Promise<void> {
     // Mark as processing
     this.processingQueue.set(subscriptionId, {
       status: "processing",
@@ -363,8 +366,7 @@ export class ShadeAgent {
    * @param {string} subscriptionId - The subscription id
    * @param {number} retryCount - The current retry count
    */
-retryPayment(subscriptionId: string, retryCount: number): void {
-
+  retryPayment(subscriptionId: string, retryCount: number): void {
     // Check if we've reached the maximum retry count
     if (retryCount >= this.retryDelays.length) {
       console.log(

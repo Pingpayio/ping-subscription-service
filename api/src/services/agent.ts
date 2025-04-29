@@ -1,5 +1,5 @@
-import { shadeAgent } from '@pingpay/subscription-sdk';
-import { contractCall } from '@neardefi/shade-agent-js';
+import { shadeAgent } from "@pingpay/subscription-sdk";
+import { contractCall } from "@neardefi/shade-agent-js";
 
 /**
  * Service for managing TEE operations and payment processing
@@ -8,12 +8,20 @@ export class AgentService {
   /**
    * Store a subscription key pair in the TEE
    */
-  async storeSubscriptionKey(subscriptionId: string, privateKey: string, publicKey: string): Promise<boolean> {
+  async storeSubscriptionKey(
+    subscriptionId: string,
+    privateKey: string,
+    publicKey: string,
+  ): Promise<boolean> {
     try {
-      return await shadeAgent.securelyStoreKey(subscriptionId, privateKey, publicKey);
+      return await shadeAgent.securelyStoreKey(
+        subscriptionId,
+        privateKey,
+        publicKey,
+      );
     } catch (error) {
-      console.error('Error storing subscription key:', error);
-      throw new Error('Failed to store subscription key in TEE');
+      console.error("Error storing subscription key:", error);
+      throw new Error("Failed to store subscription key in TEE");
     }
   }
 
@@ -23,17 +31,17 @@ export class AgentService {
   async processPayment(subscriptionId: string): Promise<boolean> {
     try {
       await shadeAgent.processPayment(subscriptionId);
-      
+
       return true;
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error("Error processing payment:", error);
       // Depending on the error type, we might want to retry or handle differently
-      if ((error as Error).message.includes('insufficient allowance')) {
-        throw new Error('Payment failed: Insufficient allowance');
-      } else if ((error as Error).message.includes('subscription not found')) {
-        throw new Error('Payment failed: Subscription not found');
+      if ((error as Error).message.includes("insufficient allowance")) {
+        throw new Error("Payment failed: Insufficient allowance");
+      } else if ((error as Error).message.includes("subscription not found")) {
+        throw new Error("Payment failed: Subscription not found");
       } else {
-        throw new Error('Payment processing failed');
+        throw new Error("Payment processing failed");
       }
     }
   }
@@ -57,8 +65,8 @@ export class AgentService {
       // Add attestation verification logic here
       return true;
     } catch (error) {
-      console.error('Error verifying attestation:', error);
-      throw new Error('Failed to verify TEE attestation');
+      console.error("Error verifying attestation:", error);
+      throw new Error("Failed to verify TEE attestation");
     }
   }
 }

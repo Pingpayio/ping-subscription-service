@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UseCasesCarousel from "./UseCasesCarousel";
@@ -10,12 +9,12 @@ const UseCasesSection: React.FC = () => {
   const isMobile = useIsMobile();
 
   return (
-    <section 
+    <section
       id="use-cases"
       className="w-full flex flex-col items-center pt-12 md:pt-28 pb-0 md:pb-0 px-4 md:px-10 relative z-10 overflow-hidden"
       style={{
         minHeight: isMobile ? "auto" : "900px",
-        backgroundColor: "#100713"
+        backgroundColor: "#100713",
       }}
     >
       <div className="max-w-[1080px] mx-auto w-full h-full flex flex-col">
@@ -26,7 +25,7 @@ const UseCasesSection: React.FC = () => {
             maxWidth="full"
           />
         </div>
-        
+
         <UseCasesCarousel />
 
         <div className="w-full flex flex-col items-center mt-8 md:mt-16 mb-4 md:mb-12">
@@ -37,7 +36,7 @@ const UseCasesSection: React.FC = () => {
             maxWidth="full"
           />
         </div>
-        
+
         <div className="flex justify-center mt-6 md:mt-8 mb-16">
           <ComingSoonButton />
         </div>

@@ -1,4 +1,3 @@
-
 import React from "react";
 
 interface TabContentProps {
@@ -14,16 +13,19 @@ const TabContent: React.FC<TabContentProps> = ({
   tab,
   position,
   children,
-  className = ""
+  className = "",
 }) => {
   if (activeTab !== tab) return null;
 
-  const alignmentClass = position === "left" 
-    ? "text-left w-full md:w-1/2 pl-0" 
-    : "text-right w-full md:w-1/2 ml-auto pr-0";
+  const alignmentClass =
+    position === "left"
+      ? "text-left w-full md:w-1/2 pl-0"
+      : "text-right w-full md:w-1/2 ml-auto pr-0";
 
   return (
-    <div className={`text-[#AB9FF2] text-sm md:text-base font-medium leading-6 ${alignmentClass} whitespace-normal ${className}`}>
+    <div
+      className={`text-[#AB9FF2] text-sm md:text-base font-medium leading-6 ${alignmentClass} whitespace-normal ${className}`}
+    >
       {children}
     </div>
   );

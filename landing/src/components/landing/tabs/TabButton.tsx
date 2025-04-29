@@ -1,4 +1,3 @@
-
 import React from "react";
 
 interface TabButtonProps {
@@ -16,7 +15,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   children,
   className = "",
   activeClass = "text-[#AB9FF2]",
-  inactiveClass = "text-[#2A2A37]"
+  inactiveClass = "text-[#2A2A37]",
 }) => {
   return (
     <button

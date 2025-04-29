@@ -1,9 +1,9 @@
 /**
  * Main entry point for the scheduler API server
  */
-import { serve } from '@hono/node-server';
-import dotenv from 'dotenv';
-import app from './api/server.js';
+import { serve } from "@hono/node-server";
+import dotenv from "dotenv";
+import app from "./api/server.js";
 
 // Load environment variables
 dotenv.config();

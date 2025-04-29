@@ -1,28 +1,28 @@
 /**
  * Queue setup module
- * 
+ *
  * This module initializes the BullMQ queue for job scheduling.
  */
-import { Queue } from 'bullmq';
-import dotenv from 'dotenv';
+import { Queue } from "bullmq";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
 // Queue name
-export const QUEUE_NAME = 'scheduler-queue';
+export const QUEUE_NAME = "scheduler-queue";
 
 // Redis connection options
 const redisOptions = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
 };
 
 // Default job options
 const defaultJobOptions = {
   attempts: 3, // Number of retry attempts
   backoff: {
-    type: 'exponential' as const,
+    type: "exponential" as const,
     delay: 1000, // Initial delay in milliseconds (1 second)
   },
   removeOnComplete: true, // Remove jobs after completion
@@ -38,15 +38,15 @@ export const queue = new Queue(QUEUE_NAME, {
 });
 
 // Log queue events
-queue.on('error', (error) => {
-  console.error('Queue error:', error);
+queue.on("error", (error) => {
+  console.error("Queue error:", error);
 });
 
-queue.on('failed', (job, error) => {
+queue.on("failed", (job, error) => {
   console.error(`Job ${job?.id} failed with error:`, error);
 });
 
-queue.on('completed', (job) => {
+queue.on("completed", (job) => {
   console.log(`Job ${job?.id} completed successfully`);
 });
 

@@ -3,7 +3,8 @@ import React from "react";
 // Paths to logo & icons
 const PING_LOGO = "/lovable-uploads/1e51f881-cf85-4f9c-929a-501fd222233c.png";
 const X_ICON = "/lovable-uploads/305c55f4-2e66-48de-81d8-26fcf0ac08d7.png";
-const GITBOOK_ICON = "/lovable-uploads/b82a9879-1700-4db3-b219-6012eb839715.png";
+const GITBOOK_ICON =
+  "/lovable-uploads/b82a9879-1700-4db3-b219-6012eb839715.png";
 
 const Footer: React.FC = () => (
   <footer
@@ -35,7 +36,10 @@ const Footer: React.FC = () => (
     {/* Right: Headings + icons with vertical alignment */}
     <div className="flex flex-col-reverse md:flex-col h-full justify-between md:justify-between items-center md:items-end w-full md:w-auto pl-0 md:pl-8 mt-4 md:mt-0">
       {/* Social Icons (aligned horizontally w/ subtext) */}
-      <div className="flex flex-row gap-4 mb-2 md:mb-0 justify-center md:justify-end items-center" style={{ minHeight: 28 }}>
+      <div
+        className="flex flex-row gap-4 mb-2 md:mb-0 justify-center md:justify-end items-center"
+        style={{ minHeight: 28 }}
+      >
         <a
           href="https://x.com/pingpay_io"
           target="_blank"
@@ -68,19 +72,13 @@ const Footer: React.FC = () => (
         </a>
       </div>
       <div className="flex flex-row gap-5 md:gap-8 mb-2 md:mb-0">
-        <button 
-          className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300"
-        >
+        <button className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300">
           Brand Kit
         </button>
-        <button 
-          className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300"
-        >
+        <button className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300">
           Privacy Policy
         </button>
-        <button 
-          className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300"
-        >
+        <button className="text-xs md:text-sm text-white font-medium select-none navbar-button hover:text-[#AB9FF2] transition-all duration-300">
           Terms &amp; Conditions
         </button>
       </div>

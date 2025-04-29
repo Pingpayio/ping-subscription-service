@@ -349,7 +349,7 @@ export class SubscriptionSDK {
     const accessKey = transactions.functionCallAccessKey(
       contractId,
       ["process_payment"],
-      BigInt(formattedAllowance)
+      BigInt(formattedAllowance),
     );
 
     // Create an action to add the key
