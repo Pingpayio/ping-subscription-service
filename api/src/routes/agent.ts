@@ -27,7 +27,7 @@ router.post('/keys', async (c) => {
     });
   } catch (error) {
     console.error('Error storing key:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
@@ -40,7 +40,7 @@ router.get('/verify', async (c) => {
     return c.json({ verified });
   } catch (error) {
     console.error('Error verifying attestation:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 

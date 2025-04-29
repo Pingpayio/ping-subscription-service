@@ -4,8 +4,8 @@
  * This module provides utility functions for calculating job schedules,
  * next run times, and delays.
  */
-import parser from 'cron-parser';
-import { Job, JobInput, ScheduleType, IntervalType } from '../types/job';
+import { CronExpressionParser } from 'cron-parser';
+import { Job, JobInput, ScheduleType, IntervalType } from '../types/job.js';
 
 /**
  * Calculate the initial delay for a job in milliseconds
@@ -45,7 +45,7 @@ export function calculateRepeatOptions(job: JobInput): { cron?: string; every?: 
       
       try {
         // Validate the cron expression
-        parser.parseExpression(job.cron_expression);
+        CronExpressionParser.parse(job.cron_expression);
         return { cron: job.cron_expression };
       } catch (error) {
         console.error('Invalid cron expression:', error);
@@ -88,14 +88,13 @@ export function calculateNextRun(job: JobInput, lastRun: Date = new Date()): Dat
       
       try {
         // Parse the cron expression
-        const interval = parser.parseExpression(job.cron_expression, {
+        const interval = CronExpressionParser.parse(job.cron_expression, {
           currentDate: lastRun,
-          iterator: true
         });
         
         // Get the next run time
         const next = interval.next();
-        return next.value.toDate();
+        return next.toDate();
       } catch (error) {
         console.error('Error parsing cron expression:', error);
         return null;

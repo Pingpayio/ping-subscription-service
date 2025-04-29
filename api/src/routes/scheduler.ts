@@ -21,7 +21,7 @@ router.post('/trigger-payment', async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error('Error processing triggered payment:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
@@ -45,7 +45,7 @@ router.post('/jobs', async (c) => {
     return c.json({ success: true, job_id: jobId });
   } catch (error) {
     console.error('Error creating scheduler job:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
@@ -66,7 +66,7 @@ router.put('/jobs/:jobId', async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error('Error updating job status:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
@@ -80,7 +80,7 @@ router.delete('/jobs/:jobId', async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error('Error deleting job:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 

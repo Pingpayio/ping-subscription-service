@@ -22,25 +22,15 @@ export class AgentService {
    */
   async processPayment(subscriptionId: string): Promise<boolean> {
     try {
-      // Retrieve the private key from TEE storage
-      const privateKey = await shadeAgent.retrieveKey(subscriptionId);
-      if (!privateKey) {
-        throw new Error(`No private key found for subscription ${subscriptionId}`);
-      }
-
-      // Process the payment using the contract
-      await contractCall({
-        methodName: 'process_payment',
-        args: { subscription_id: subscriptionId }
-      });
-
+      await shadeAgent.processPayment(subscriptionId);
+      
       return true;
     } catch (error) {
       console.error('Error processing payment:', error);
       // Depending on the error type, we might want to retry or handle differently
-      if (error.message.includes('insufficient allowance')) {
+      if ((error as Error).message.includes('insufficient allowance')) {
         throw new Error('Payment failed: Insufficient allowance');
-      } else if (error.message.includes('subscription not found')) {
+      } else if ((error as Error).message.includes('subscription not found')) {
         throw new Error('Payment failed: Subscription not found');
       } else {
         throw new Error('Payment processing failed');

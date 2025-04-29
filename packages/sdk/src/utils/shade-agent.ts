@@ -1,6 +1,5 @@
 import * as nearAPI from "near-api-js";
 import { TappdClient, setKey, getAccount, contractCall, contractView } from "@neardefi/shade-agent-js";
-// Use a default account ID if not provided
 const { KeyPair } = nearAPI;
 
 interface KeyPair {
@@ -252,7 +251,7 @@ export class ShadeAgent {
         }
 
         // Process the payment
-        this.processPayment(subscription);
+        this.processPayment(subscription.id);
       }
     } catch (error) {
       console.error("Error checking due subscriptions:", error);
@@ -261,14 +260,13 @@ export class ShadeAgent {
 
   /**
    * Process a payment for a subscription
-   * @param {Object} subscription - The subscription object
+   * @param {string} subscriptionId - The subscription id
    * @param {number} retryCount - The current retry count
    */
   async processPayment(
-    subscription: Subscription,
+    subscriptionId: string,
     retryCount = 0,
   ): Promise<void> {
-    const subscriptionId = subscription.id;
 
     // Mark as processing
     this.processingQueue.set(subscriptionId, {
@@ -345,10 +343,10 @@ export class ShadeAgent {
             `Key is not authorized for subscription ${subscriptionId}, trying to register again`,
           );
           await this.registerSubscriptionKey(subscriptionId, keyPair.publicKey);
-          this.retryPayment(subscription, retryCount);
+          this.retryPayment(subscriptionId, retryCount);
         } else {
           // Other errors, retry if possible
-          this.retryPayment(subscription, retryCount);
+          this.retryPayment(subscriptionId, retryCount);
         }
       }
     } catch (error) {
@@ -356,17 +354,16 @@ export class ShadeAgent {
         `Error processing payment for subscription ${subscriptionId}:`,
         error,
       );
-      this.retryPayment(subscription, retryCount);
+      this.retryPayment(subscriptionId, retryCount);
     }
   }
 
   /**
    * Retry a payment after a delay
-   * @param {Object} subscription - The subscription object
+   * @param {string} subscriptionId - The subscription id
    * @param {number} retryCount - The current retry count
    */
-  retryPayment(subscription: Subscription, retryCount: number): void {
-    const subscriptionId = subscription.id;
+retryPayment(subscriptionId: string, retryCount: number): void {
 
     // Check if we've reached the maximum retry count
     if (retryCount >= this.retryDelays.length) {
@@ -392,7 +389,7 @@ export class ShadeAgent {
 
     // Schedule retry
     setTimeout(() => {
-      this.processPayment(subscription, retryCount + 1);
+      this.processPayment(subscriptionId, retryCount + 1);
     }, delay);
   }
 }
