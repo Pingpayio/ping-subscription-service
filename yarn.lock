@@ -1044,7 +1044,7 @@ __metadata:
   resolution: "@pingpay/subscription-sdk@workspace:packages/sdk"
   dependencies:
     "@neardefi/shade-agent-js": "npm:^0.0.12"
-    "@pingpay/types": "npm:^0.1.0"
+    "@pingpay/types": "workspace:^"
     "@types/node": "npm:^20.11.30"
     dotenv: "npm:^16.4.5"
     near-api-js: "npm:^5.0.1"
@@ -1067,7 +1067,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@pingpay/types@npm:^0.1.0, @pingpay/types@workspace:*, @pingpay/types@workspace:packages/types":
+"@pingpay/types@workspace:*, @pingpay/types@workspace:^, @pingpay/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@pingpay/types@workspace:packages/types"
   dependencies:

@@ -396,5 +396,4 @@ export class ShadeAgent {
   }
 }
 
-// Export a singleton instance
 export const shadeAgent = new ShadeAgent();
