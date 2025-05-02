@@ -1,0 +1,17 @@
+name: Sync Scheduler Service
+on:
+  push:
+    paths:
+      - 'scheduler/**'
+    branches:
+      - main
+
+jobs:
+  sync-rss:
+    uses: PotLock/curatedotfun-plugins/.github/workflows/sync-service-template.yml@main
+    with:
+      source_path: scheduler
+      target_repo: open-crosspost/scheduler-service
+      target_branch: main
+    secrets:
+      deploy_token: ${{ secrets.SCHEDULER_DEPLOY_TOKEN }}
