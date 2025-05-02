@@ -1,4 +1,4 @@
-# PingPay Scheduler Service
+# Scheduler Service
 
 A robust and flexible job scheduler service that provides a reliable way to schedule jobs to be executed at specific times or intervals. It leverages BullMQ for queue management and PostgreSQL for persistent job storage.
 
