@@ -5,9 +5,10 @@ import { agentService } from "../services/agent.js";
 const router = new Hono();
 
 /**
- * Store a subscription key in the TEE 
+ * Store a subscription key in the TEE
  */
-router.post("/keys", async (c) => { // this should be called exclusively by the SDK
+router.post("/keys", async (c) => {
+  // this should be called exclusively by the SDK
   try {
     const { subscription_id, private_key, public_key } = await c.req.json();
 
