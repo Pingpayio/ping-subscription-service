@@ -27,9 +27,6 @@ async function initializeDatabase() {
   // Create a new client
   const client = new Client({
     connectionString: postgresUrl,
-    ssl: {
-      rejectUnauthorized: false,
-    },
   });
 
   try {

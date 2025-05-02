@@ -14,11 +14,9 @@
     "dev": "docker compose up --build",
     "stop": "docker compose down",
     "db:init": "bun run src/db/init.ts",
-    "test": "bun test",
-    "test:unit": "bun test tests/unit",
-    "test:integration": "bun test tests/integration",
-    "test:e2e": "bun test tests/e2e",
-    "test:coverage": "bun test --coverage"
+    "test": "docker compose up -d && sleep 5 && vitest run; EXIT_CODE=$?; docker compose down -v --remove-orphans; exit $EXIT_CODE",
+    "example:target": "bun run examples/mock-target-server.js",
+    "example:job": "bun run examples/create-and-execute-job.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.1",
@@ -36,10 +34,9 @@
     "@types/pg": "^8.11.13",
     "@types/supertest": "^6.0.0",
     "@types/uuid": "^10.0.0",
-    "mock-redis": "^0.0.3",
     "nock": "^13.5.0",
-    "pg-mem": "^2.8.0",
     "supertest": "^6.3.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
   }
 }

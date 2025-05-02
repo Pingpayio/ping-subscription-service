@@ -55,9 +55,12 @@ services:
       - ./.env:/app/.env # matches local .env
     command: >
       sh -c "bun install && 
+            echo 'Running database initialization...' && 
+            bun run db:init && 
+            echo 'Starting application...' && 
             bun run --watch src/index.ts & 
             bun run --watch src/worker.ts & 
-            wait" 
+            wait"
 
 volumes:
   postgres_data:
