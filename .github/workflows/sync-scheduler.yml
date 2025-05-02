@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  sync-rss:
+  sync-git:
     uses: PotLock/curatedotfun-plugins/.github/workflows/sync-service-template.yml@main
     with:
       source_path: scheduler
