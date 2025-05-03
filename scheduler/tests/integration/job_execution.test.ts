@@ -1,7 +1,7 @@
 /**
  * Integration test for job creation and execution
  *
- * This test demonstrates creating a job via the API endpoint and verifying
+ * This test demonstrates creating a job via the SDK client and verifying
  * that the job calls the specified target with the correct payload.
  */
 import {
@@ -15,21 +15,22 @@ import {
   vi,
 } from "vitest";
 import { serve } from "@hono/node-server";
-import supertest from "supertest";
 import nock from "nock";
-import { v4 as uuidv4 } from "uuid";
 
 // Import the app, database, and worker
 import app from "../../src/api/server.js";
-import { JobType, ScheduleType } from "../../src/types/job.js";
 import db from "../../src/db/index.js";
 import { Worker } from "bullmq";
 import { QUEUE_NAME } from "../../src/queues/index.js";
 
+// Import the SDK client
+import { SchedulerClient, JobType, ScheduleType, JobStatus } from "../../packages/scheduler-sdk/src/index.js";
+
 describe("Job Creation and Execution", () => {
   let server: any;
-  let request: any;
+  let client: SchedulerClient;
   let worker: Worker;
+  let serverUrl: string;
 
   // Set up database and mocks before each test
   beforeEach(async () => {
@@ -53,8 +54,14 @@ describe("Job Creation and Execution", () => {
       port: 0, // Use a random port
     });
 
-    // Create a supertest instance
-    request = supertest(server);
+    // Get the server URL
+    const address = server.address();
+    serverUrl = `http://localhost:${address.port}`;
+    
+    // Create the SDK client
+    client = new SchedulerClient({
+      baseUrl: serverUrl
+    });
 
     // Configure nock to allow network connections to the test server and localhost
     nock.enableNetConnect(/(localhost|127\.0\.0\.1|mock-target\.com)/);
@@ -115,7 +122,7 @@ describe("Job Creation and Execution", () => {
       .post(targetPath, payload)
       .reply(200, { success: true });
 
-    // Create a job
+    // Create a job using the SDK client
     const jobData = {
       name: "Test Job",
       description: "A test job",
@@ -124,21 +131,18 @@ describe("Job Creation and Execution", () => {
       payload,
       schedule_type: ScheduleType.SPECIFIC_TIME,
       specific_time: new Date(Date.now() + 1000).toISOString(), // 1 second in the future
+      status: JobStatus.ACTIVE,
     };
 
-    // Send a request to create the job
-    const response = await request.post("/jobs").send(jobData).expect(201);
+    // Create the job using the SDK client
+    const job = await client.createJob(jobData);
 
-    // Verify the response
-    expect(response.body.message).toBe("Job created successfully");
-    expect(response.body.job).toBeDefined();
-    expect(response.body.job.id).toBeDefined();
-    expect(response.body.job.name).toBe(jobData.name);
-    expect(response.body.job.type).toBe(jobData.type);
-    expect(response.body.job.target).toBe(jobData.target);
-
-    // Get the job ID from the response
-    const jobId = response.body.job.id;
+    // Verify the job was created correctly
+    expect(job).toBeDefined();
+    expect(job.id).toBeDefined();
+    expect(job.name).toBe(jobData.name);
+    expect(job.type).toBe(jobData.type);
+    expect(job.target).toBe(jobData.target);
 
     // Wait for the job to be processed (3 seconds should be enough)
     await new Promise((resolve) => setTimeout(resolve, 3000));

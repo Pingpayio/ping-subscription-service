@@ -1,0 +1,38 @@
+{
+  "name": "@crosspost/scheduler-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK client for the Scheduler service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "bun run clean && tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "axios": "^1.8.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public" 
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crosspost/scheduler.git" 
+  },
+  "keywords": [
+    "scheduler",
+    "sdk",
+    "typescript",
+    "crosspost"
+  ],
+  "author": "Crosspost",
+  "license": "MIT" 
+}

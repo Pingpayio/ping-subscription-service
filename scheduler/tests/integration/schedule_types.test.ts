@@ -15,21 +15,28 @@ import {
   vi,
 } from "vitest";
 import { serve } from "@hono/node-server";
-import supertest from "supertest";
 import nock from "nock";
-import { v4 as uuidv4 } from "uuid";
 
 // Import the app, database, and worker
 import app from "../../src/api/server.js";
-import { JobType, ScheduleType, IntervalType } from "../../src/types/job.js";
 import db from "../../src/db/index.js";
 import { Worker } from "bullmq";
 import { QUEUE_NAME } from "../../src/queues/index.js";
 
+// Import the SDK client
+import { 
+  SchedulerClient, 
+  JobType, 
+  ScheduleType, 
+  IntervalType,
+  JobStatus 
+} from "../../packages/scheduler-sdk/src/index.js";
+
 describe("Job Schedule Types", () => {
   let server: any;
-  let request: any;
+  let client: SchedulerClient;
   let worker: Worker;
+  let serverUrl: string;
 
   // Set up database and mocks before each test
   beforeEach(async () => {
@@ -53,8 +60,14 @@ describe("Job Schedule Types", () => {
       port: 0, // Use a random port
     });
 
-    // Create a supertest instance
-    request = supertest(server);
+    // Get the server URL
+    const address = server.address();
+    serverUrl = `http://localhost:${address.port}`;
+    
+    // Create the SDK client
+    client = new SchedulerClient({
+      baseUrl: serverUrl
+    });
 
     // Configure nock to allow network connections to the test server and localhost
     nock.enableNetConnect(/(localhost|127\.0\.0\.1|mock-target\.com)/);
@@ -128,23 +141,20 @@ describe("Job Schedule Types", () => {
         payload,
         schedule_type: ScheduleType.CRON,
         cron_expression: "* * * * *", // Every minute
+        status: JobStatus.ACTIVE,
       };
 
-      // Send a request to create the job
-      const response = await request.post("/jobs").send(jobData).expect(201);
+      // Create the job using the SDK client
+      const job = await client.createJob(jobData);
 
-      // Verify the response
-      expect(response.body.message).toBe("Job created successfully");
-      expect(response.body.job).toBeDefined();
-      expect(response.body.job.id).toBeDefined();
-      expect(response.body.job.name).toBe(jobData.name);
-      expect(response.body.job.type).toBe(jobData.type);
-      expect(response.body.job.target).toBe(jobData.target);
-      expect(response.body.job.schedule_type).toBe(ScheduleType.CRON);
-      expect(response.body.job.cron_expression).toBe(jobData.cron_expression);
-
-      // Get the job ID from the response
-      const jobId = response.body.job.id;
+      // Verify the job was created correctly
+      expect(job).toBeDefined();
+      expect(job.id).toBeDefined();
+      expect(job.name).toBe(jobData.name);
+      expect(job.type).toBe(jobData.type);
+      expect(job.target).toBe(jobData.target);
+      expect(job.schedule_type).toBe(ScheduleType.CRON);
+      expect(job.cron_expression).toBe(jobData.cron_expression);
 
       // Wait for the job to be processed (60 seconds should be enough for a cron job)
       console.log("Waiting for cron job to execute...");
@@ -179,24 +189,21 @@ describe("Job Schedule Types", () => {
         schedule_type: ScheduleType.RECURRING,
         interval: IntervalType.MINUTE,
         interval_value: 1, // Every 1 minute
+        status: JobStatus.ACTIVE,
       };
 
-      // Send a request to create the job
-      const response = await request.post("/jobs").send(jobData).expect(201);
+      // Create the job using the SDK client
+      const job = await client.createJob(jobData);
 
-      // Verify the response
-      expect(response.body.message).toBe("Job created successfully");
-      expect(response.body.job).toBeDefined();
-      expect(response.body.job.id).toBeDefined();
-      expect(response.body.job.name).toBe(jobData.name);
-      expect(response.body.job.type).toBe(jobData.type);
-      expect(response.body.job.target).toBe(jobData.target);
-      expect(response.body.job.schedule_type).toBe(ScheduleType.RECURRING);
-      expect(response.body.job.interval).toBe(jobData.interval);
-      expect(response.body.job.interval_value).toBe(jobData.interval_value);
-
-      // Get the job ID from the response
-      const jobId = response.body.job.id;
+      // Verify the job was created correctly
+      expect(job).toBeDefined();
+      expect(job.id).toBeDefined();
+      expect(job.name).toBe(jobData.name);
+      expect(job.type).toBe(jobData.type);
+      expect(job.target).toBe(jobData.target);
+      expect(job.schedule_type).toBe(ScheduleType.RECURRING);
+      expect(job.interval).toBe(jobData.interval);
+      expect(job.interval_value).toBe(jobData.interval_value);
 
       // Wait for the job to be processed (60 seconds should be enough for a recurring job)
       console.log("Waiting for recurring job to execute...");
