@@ -8,13 +8,13 @@ import {
   JobListResponse,
   JobListParams,
   JobStatus,
-} from './types';
+} from './types.js';
 import {
   ApiError,
   NetworkError,
   JobNotFoundError,
   DuplicateJobError,
-} from './errors';
+} from './errors.js';
 
 /**
  * Configuration options for the Scheduler client
