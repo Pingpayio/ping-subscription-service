@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { serveStatic } from "hono/bun";
 import { v4 as uuidv4 } from "uuid";
 import db from "../db/index.js";
 import queue from "../queues/index.js";
@@ -55,9 +56,68 @@ app.use(
   }),
 );
 
+// Serve static files from the static directory
+app.use('/static/*', serveStatic({ root: './' }))
+
+// Serve dashboard files from root for the dashboard UI
+app.use('/*', serveStatic({ 
+  root: './static/dashboard/',
+  rewriteRequestPath: (path) => {
+    // Serve index.html for the root path
+    if (path === '/') return '/index.html';
+    // Remove leading slash for other files
+    return path.replace(/^\//, '');
+  },
+  mimes: {
+    js: 'application/javascript',
+    css: 'text/css',
+    html: 'text/html'
+  }
+}))
+
 // Health check endpoint
 app.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Run a job immediately
+app.post("/jobs/:id/run", async (c) => {
+  try {
+    const id = c.req.param("id");
+
+    // Check if the job exists
+    const checkQuery = "SELECT * FROM jobs WHERE id = $1";
+    const checkResult = await db.query(checkQuery, [id]);
+
+    if (checkResult.rows.length === 0) {
+      return c.json({ message: "Job not found" }, 404);
+    }
+
+    const job = checkResult.rows[0];
+
+    // Prepare the job data for BullMQ
+    const bullJobData: JobData = {
+      jobId: id,
+      target: job.target,
+      type: job.type,
+      payload: job.payload,
+    };
+
+    // Add the job to the queue with no delay
+    await queue.add(`${job.name}-manual`, bullJobData, {
+      jobId: `${id}-manual-${Date.now()}`,
+      removeOnComplete: true,
+      removeOnFail: 500,
+    });
+
+    return c.json({ message: "Job triggered successfully" });
+  } catch (error) {
+    console.error("Error running job:", error);
+    return c.json(
+      { message: "Error running job", error: (error as Error).message },
+      500,
+    );
+  }
 });
 
 // Create a job
@@ -365,5 +425,7 @@ app.delete("/jobs/:id", async (c) => {
     );
   }
 });
+
+// API endpoints are handled before this fallback
 
 export default app;

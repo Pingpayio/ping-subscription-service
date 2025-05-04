@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduler Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Scheduler Dashboard</h1>
+    </header>
+
+    <main>
+        <div class="controls">
+            <div class="filters">
+                <label for="status-filter">Status:</label>
+                <select id="status-filter">
+                    <option value="all">All</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div class="actions">
+                <button id="refresh-btn" class="btn">Refresh</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="jobs-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Schedule</th>
+                        <th>Status</th>
+                        <th>Next Run</th>
+                        <th>Last Run</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="jobs-table-body">
+                    <!-- Jobs will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="loading" class="loading">Loading...</div>
+        <div id="error-message" class="error-message"></div>
+    </main>
+
+    <!-- Job Details Modal -->
+    <div id="job-details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Job Details</h2>
+            <div id="job-details-content">
+                <!-- Job details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h2>Confirm Action</h2>
+            <p id="confirm-message"></p>
+            <div class="modal-actions">
+                <button id="confirm-yes" class="btn btn-danger">Yes</button>
+                <button id="confirm-no" class="btn">No</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tanstack/table-core@8.13.2/build/index.global.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

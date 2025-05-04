@@ -14,6 +14,6 @@
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "static"],
   "exclude": ["node_modules", "dist"]
 }

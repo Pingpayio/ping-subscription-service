@@ -49,6 +49,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src
+      - ./static:/app/static
       - ./package.json:/app/package.json
       - ./bun.lock:/app/bun.lock
       - ./tsconfig.json:/app/tsconfig.json
