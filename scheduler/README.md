@@ -1,4 +1,4 @@
-# Scheduler Service
+<img width="571" alt="Screenshot 2025-05-04 at 11 52 48 AM" src="https://github.com/user-attachments/assets/1a0526ab-b030-4637-b768-200f9cb26cbc" />
 
 A robust and flexible job scheduler service that provides a reliable way to schedule jobs to be executed at specific times or intervals. It leverages BullMQ for queue management and PostgreSQL for persistent job storage.
 
