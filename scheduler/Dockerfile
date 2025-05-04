@@ -38,7 +38,7 @@ COPY --from=base --chown=bunjs:nodejs /app/dist ./dist
 COPY --from=base --chown=bunjs:nodejs /app/package.json ./
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 3001
 
 # Create a script to run both the API server and worker
 RUN echo '#!/bin/sh\nbun run dist/index.js & bun run dist/worker.js & wait\n' > /app/start.sh && \

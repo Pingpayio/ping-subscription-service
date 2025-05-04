@@ -12,8 +12,8 @@
 import axios from "axios";
 
 // Configuration
-const SCHEDULER_API_URL = "http://localhost:3000";
-const MOCK_TARGET_URL = "http://localhost:3001/webhook";
+const SCHEDULER_API_URL = "http://localhost:3001";
+const MOCK_TARGET_URL = "http://localhost:3000/webhook";
 
 /**
  * Create a job via the API

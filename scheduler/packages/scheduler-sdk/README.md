@@ -15,7 +15,7 @@ npm install @crosspost/scheduler-sdk
 ```typescript
 import { SchedulerClient } from '@crosspost/scheduler-sdk';
 
-// Create a client with default options (connects to http://localhost:3000)
+// Create a client with default options (connects to http://localhost:3001)
 const client = new SchedulerClient();
 
 // Or with custom options
@@ -256,7 +256,7 @@ new SchedulerClient(options?: SchedulerClientOptions)
 ```
 
 Options:
-- `baseUrl`: Base URL for the Scheduler API (default: 'http://localhost:3000')
+- `baseUrl`: Base URL for the Scheduler API (default: 'http://localhost:3001')
 - `timeout`: Timeout for API requests in milliseconds (default: 10000)
 - `headers`: Headers to include with every request
 

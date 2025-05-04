@@ -62,7 +62,7 @@ sequenceDiagram
 docker compose up --build
 ```
 
-The web interface will be available at `http://localhost:3000`
+The web interface will be available at `http://localhost:3001`
 
 ## API Usage
 
@@ -187,12 +187,12 @@ POSTGRES_URL=postgresql://username:password@host:port/database
 
 # Redis connection
 REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_PORT=6380
 
 # API server port
-PORT=3000
+PORT=3001
 
 # Security
-ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
+ALLOWED_ORIGINS=http://localhost:3001,https://your-domain.com
 ALLOWED_TARGET_HOSTS=*.example.com,api.another-domain.com
 ```
