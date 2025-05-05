@@ -6,11 +6,10 @@
 import { Queue } from "bullmq";
 import dotenv from "dotenv";
 
-// Load environment variables
 dotenv.config();
 
-// Queue name
-export const QUEUE_NAME = "scheduler-queue";
+export const ACTIVE_QUEUE_NAME = "scheduler-queue";
+export const DLQ_QUEUE_NAME = "scheduler-dlq"; // Dead Letter Queue for inactive/failed jobs
 
 // Redis connection options
 const redisOptions = {
@@ -30,24 +29,41 @@ const defaultJobOptions = {
 };
 
 /**
- * Initialize the BullMQ queue
+ * Initialize the BullMQ queues
  */
-export const queue = new Queue(QUEUE_NAME, {
+export const activeQueue = new Queue(ACTIVE_QUEUE_NAME, {
   connection: redisOptions,
   defaultJobOptions,
 });
 
-// Log queue events
-queue.on("error", (error) => {
-  console.error("Queue error:", error);
+export const dlqQueue = new Queue(DLQ_QUEUE_NAME, {
+  connection: redisOptions,
+  defaultJobOptions: {
+    ...defaultJobOptions,
+    attempts: 0, // No automatic retries for DLQ jobs
+  },
 });
 
-queue.on("failed", (job, error) => {
+// Log queue events
+activeQueue.on('error', (error) => {
+  console.error("Active queue error:", error);
+});
+
+// Use proper event types for BullMQ
+activeQueue.on('failed', (job, error) => {
   console.error(`Job ${job?.id} failed with error:`, error);
 });
 
-queue.on("completed", (job) => {
+activeQueue.on('completed', (job) => {
   console.log(`Job ${job?.id} completed successfully`);
 });
 
-export default queue;
+dlqQueue.on('error', (error) => {
+  console.error("DLQ error:", error);
+});
+
+// Export both queues
+export default {
+  activeQueue,
+  dlqQueue
+};

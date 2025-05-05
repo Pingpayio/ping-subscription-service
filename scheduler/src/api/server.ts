@@ -9,7 +9,8 @@ import { logger } from "hono/logger";
 import { serveStatic } from "hono/bun";
 import { v4 as uuidv4 } from "uuid";
 import db from "../db/index.js";
-import queue from "../queues/index.js";
+import queues from "../queues/index.js";
+import { ACTIVE_QUEUE_NAME, DLQ_QUEUE_NAME } from "../queues/index.js";
 import {
   JobSchema,
   JobInput,
@@ -49,7 +50,7 @@ app.use(
   cors({
     origin: corsOrigin,
     credentials: true, // Allow credentials (cookies, authorization headers)
-    allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowHeaders: ["Content-Type", "Authorization"], // Headers the server can read
     exposeHeaders: ["Content-Length", "X-Request-Id"], // Headers the client can read
     maxAge: 600, // Cache preflight requests for 10 minutes
@@ -103,8 +104,8 @@ app.post("/jobs/:id/run", async (c) => {
       payload: job.payload,
     };
 
-    // Add the job to the queue with no delay
-    await queue.add(`${job.name}-manual`, bullJobData, {
+    // Add the job to the active queue with no delay
+    await queues.activeQueue.add(`${job.name}-manual`, bullJobData, {
       jobId: `${id}-manual-${Date.now()}`,
       removeOnComplete: true,
       removeOnFail: 500,
@@ -192,7 +193,7 @@ app.post("/jobs", async (c) => {
         return c.json({ message: "Specific time must be in the future" }, 400);
       }
 
-      await queue.add(jobData.name, bullJobData, {
+      await queues.activeQueue.add(jobData.name, bullJobData, {
         jobId: id,
         delay,
         removeOnComplete: true,
@@ -206,7 +207,7 @@ app.post("/jobs", async (c) => {
         return c.json({ message: "Invalid repeat configuration" }, 400);
       }
 
-      await queue.add(jobData.name, bullJobData, {
+      await queues.activeQueue.add(jobData.name, bullJobData, {
         jobId: id,
         repeat: repeatOptions,
         removeOnComplete: true,
@@ -348,8 +349,9 @@ app.put("/jobs/:id", async (c) => {
     const dbResult = await db.query(query, values);
     const job = dbResult.rows[0];
 
-    // Remove the existing job from the queue
-    await queue.remove(id);
+    // Remove the existing job from both queues
+    await queues.activeQueue.remove(id);
+    await queues.dlqQueue.remove(id);
 
     // Prepare the job data for BullMQ
     const bullJobData: JobData = {
@@ -368,7 +370,7 @@ app.put("/jobs/:id", async (c) => {
         return c.json({ message: "Specific time must be in the future" }, 400);
       }
 
-      await queue.add(jobData.name, bullJobData, {
+      await queues.activeQueue.add(jobData.name, bullJobData, {
         jobId: id,
         delay,
         removeOnComplete: true,
@@ -382,7 +384,7 @@ app.put("/jobs/:id", async (c) => {
         return c.json({ message: "Invalid repeat configuration" }, 400);
       }
 
-      await queue.add(jobData.name, bullJobData, {
+      await queues.activeQueue.add(jobData.name, bullJobData, {
         jobId: id,
         repeat: repeatOptions,
         removeOnComplete: true,
@@ -413,14 +415,304 @@ app.delete("/jobs/:id", async (c) => {
       return c.json({ message: "Job not found" }, 404);
     }
 
-    // Remove the job from the queue
-    await queue.remove(id);
+    // Remove the job from both queues
+    await queues.activeQueue.remove(id);
+    await queues.dlqQueue.remove(id);
 
     return c.json({ message: "Job deleted successfully" });
   } catch (error) {
     console.error("Error deleting job:", error);
     return c.json(
       { message: "Error deleting job", error: (error as Error).message },
+      500,
+    );
+  }
+});
+
+app.patch("/jobs/:id/status", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    // Parse and validate the request body
+    const body = await c.req.json();
+    
+    if (!body.status || !Object.values(JobStatus).includes(body.status)) {
+      return c.json({ message: "Invalid status value" }, 400);
+    }
+    
+    const newStatus = body.status;
+
+    // Check if the job exists
+    const checkQuery = "SELECT * FROM jobs WHERE id = $1";
+    const checkResult = await db.query(checkQuery, [id]);
+
+    if (checkResult.rows.length === 0) {
+      return c.json({ message: "Job not found" }, 404);
+    }
+
+    const job = checkResult.rows[0];
+    
+    // Update the job status in the database
+    const updateQuery = `
+      UPDATE jobs
+      SET status = $2,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const updateResult = await db.query(updateQuery, [id, newStatus]);
+    const updatedJob = updateResult.rows[0];
+    
+    // If the job is now inactive, move it to the DLQ
+    if (newStatus === JobStatus.INACTIVE) {
+      // Remove from active queue
+      await queues.activeQueue.remove(id);
+      
+      // Add to DLQ
+      const bullJobData: JobData = {
+        jobId: id,
+        target: job.target,
+        type: job.type,
+        payload: job.payload,
+      };
+      
+      await queues.dlqQueue.add(`${job.name}-inactive`, bullJobData, {
+        jobId: id,
+        removeOnComplete: false,
+        removeOnFail: false,
+      });
+      
+      console.log(`Job ${id} moved to DLQ due to inactive status`);
+    } 
+    // If the job is now active, move it from DLQ to active queue
+    else if (newStatus === JobStatus.ACTIVE) {
+      // Remove from DLQ if it exists there
+      await queues.dlqQueue.remove(id);
+      // Prepare the job data for BullMQ
+      const bullJobData: JobData = {
+        jobId: id,
+        target: job.target,
+        type: job.type,
+        payload: job.payload,
+      };
+
+      // Add the job to the queue based on its schedule type
+      if (job.schedule_type === ScheduleType.SPECIFIC_TIME) {
+        // For specific_time jobs, use delay
+        const delay = calculateInitialDelay({
+          name: job.name,
+          type: job.type,
+          target: job.target,
+          status: job.status,
+          schedule_type: job.schedule_type,
+          specific_time: job.specific_time
+        });
+
+        if (delay !== null) {
+          await queues.activeQueue.add(job.name, bullJobData, {
+            jobId: id,
+            delay,
+            removeOnComplete: true,
+            removeOnFail: 500,
+          });
+        }
+      } else {
+        // For cron and recurring jobs, use repeat options
+        const repeatOptions = calculateRepeatOptions({
+          name: job.name,
+          type: job.type,
+          target: job.target,
+          status: job.status,
+          schedule_type: job.schedule_type,
+          cron_expression: job.cron_expression,
+          interval: job.interval,
+          interval_value: job.interval_value
+        });
+
+        if (repeatOptions !== null) {
+          await queues.activeQueue.add(job.name, bullJobData, {
+            jobId: id,
+            repeat: repeatOptions,
+            removeOnComplete: true,
+            removeOnFail: 500,
+          });
+        }
+      }
+    }
+
+    return c.json({ 
+      message: `Job status updated to ${newStatus} successfully`, 
+      job: updatedJob 
+    });
+  } catch (error) {
+    console.error("Error updating job status:", error);
+    return c.json(
+      { message: "Error updating job status", error: (error as Error).message },
+      500,
+    );
+  }
+});
+
+// Get jobs in the DLQ
+app.get("/dlq", async (c) => {
+  try {
+    // Get all jobs with inactive status
+    const query = "SELECT * FROM jobs WHERE status = $1 ORDER BY updated_at DESC";
+    const result = await db.query(query, [JobStatus.INACTIVE]);
+    
+    return c.json(result.rows);
+  } catch (error) {
+    console.error("Error getting DLQ jobs:", error);
+    return c.json(
+      { message: "Error getting DLQ jobs", error: (error as Error).message },
+      500,
+    );
+  }
+});
+
+// Move a job from DLQ back to active queue
+app.post("/dlq/:id/reactivate", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    // Check if the job exists
+    const checkQuery = "SELECT * FROM jobs WHERE id = $1";
+    const checkResult = await db.query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return c.json({ message: "Job not found" }, 404);
+    }
+    
+    const job = checkResult.rows[0];
+    
+    // Check if the job is inactive
+    if (job.status !== JobStatus.INACTIVE) {
+      return c.json({ message: "Only inactive jobs can be reactivated" }, 400);
+    }
+    
+    // Update the job status in the database
+    const updateQuery = `
+      UPDATE jobs
+      SET status = $2,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const updateResult = await db.query(updateQuery, [id, JobStatus.ACTIVE]);
+    const updatedJob = updateResult.rows[0];
+    
+    // Remove from DLQ
+    await queues.dlqQueue.remove(id);
+    
+    // Prepare the job data for BullMQ
+    const bullJobData: JobData = {
+      jobId: id,
+      target: job.target,
+      type: job.type,
+      payload: job.payload,
+    };
+    
+    // Add to active queue based on schedule type
+    if (job.schedule_type === ScheduleType.SPECIFIC_TIME) {
+      const delay = calculateInitialDelay({
+        name: job.name,
+        type: job.type,
+        target: job.target,
+        status: JobStatus.ACTIVE,
+        schedule_type: job.schedule_type,
+        specific_time: job.specific_time
+      });
+      
+      if (delay !== null) {
+        await queues.activeQueue.add(job.name, bullJobData, {
+          jobId: id,
+          delay,
+          removeOnComplete: true,
+          removeOnFail: 500,
+        });
+      }
+    } else {
+      const repeatOptions = calculateRepeatOptions({
+        name: job.name,
+        type: job.type,
+        target: job.target,
+        status: JobStatus.ACTIVE,
+        schedule_type: job.schedule_type,
+        cron_expression: job.cron_expression,
+        interval: job.interval,
+        interval_value: job.interval_value
+      });
+      
+      if (repeatOptions !== null) {
+        await queues.activeQueue.add(job.name, bullJobData, {
+          jobId: id,
+          repeat: repeatOptions,
+          removeOnComplete: true,
+          removeOnFail: 500,
+        });
+      }
+    }
+    
+    return c.json({
+      message: "Job reactivated successfully",
+      job: updatedJob
+    });
+  } catch (error) {
+    console.error("Error reactivating job:", error);
+    return c.json(
+      { message: "Error reactivating job", error: (error as Error).message },
+      500,
+    );
+  }
+});
+
+// Complete a job in the DLQ (mark as completed without running)
+app.post("/dlq/:id/complete", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    // Check if the job exists
+    const checkQuery = "SELECT * FROM jobs WHERE id = $1";
+    const checkResult = await db.query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return c.json({ message: "Job not found" }, 404);
+    }
+    
+    const job = checkResult.rows[0];
+    
+    // Check if the job is inactive
+    if (job.status !== JobStatus.INACTIVE) {
+      return c.json({ message: "Only inactive jobs can be completed from DLQ" }, 400);
+    }
+    
+    // Update the job in the database
+    const updateQuery = `
+      UPDATE jobs
+      SET last_run = NOW(),
+          next_run = NULL,
+          error_message = NULL,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const updateResult = await db.query(updateQuery, [id]);
+    const updatedJob = updateResult.rows[0];
+    
+    // Remove from DLQ
+    await queues.dlqQueue.remove(id);
+    
+    return c.json({
+      message: "Job marked as completed successfully",
+      job: updatedJob
+    });
+  } catch (error) {
+    console.error("Error completing job:", error);
+    return c.json(
+      { message: "Error completing job", error: (error as Error).message },
       500,
     );
   }

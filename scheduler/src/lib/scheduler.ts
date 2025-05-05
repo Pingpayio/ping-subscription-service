@@ -83,7 +83,7 @@ export function calculateRepeatOptions(
  * @returns The next run time, or null if the job schedule is invalid
  */
 export function calculateNextRun(
-  job: JobInput,
+  job: Partial<JobInput>,
   lastRun: Date = new Date(),
 ): Date | null {
   const now = new Date();

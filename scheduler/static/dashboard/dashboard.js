@@ -9,13 +9,21 @@ const API_BASE_URL = '';  // Empty string means same origin
 
 // State
 let jobs = [];
+let dlqJobs = [];
 let currentFilter = 'all';
 let confirmCallback = null;
+let currentTab = 'jobs'; // 'jobs' or 'dlq'
 
 // DOM Elements
+const jobsTab = document.getElementById('jobs-tab');
+const dlqTab = document.getElementById('dlq-tab');
+const jobsContent = document.getElementById('jobs-content');
+const dlqContent = document.getElementById('dlq-content');
 const jobsTableBody = document.getElementById('jobs-table-body');
+const dlqTableBody = document.getElementById('dlq-table-body');
 const statusFilter = document.getElementById('status-filter');
 const refreshBtn = document.getElementById('refresh-btn');
+const refreshDlqBtn = document.getElementById('refresh-dlq-btn');
 const loadingIndicator = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
 const jobDetailsModal = document.getElementById('job-details-modal');
@@ -28,9 +36,14 @@ const closeButtons = document.querySelectorAll('.close');
 
 // Initialize the dashboard
 function init() {
-    // Set up event listeners
+    // Set up tab event listeners
+    jobsTab.addEventListener('click', () => switchTab('jobs'));
+    dlqTab.addEventListener('click', () => switchTab('dlq'));
+    
+    // Set up other event listeners
     statusFilter.addEventListener('change', handleFilterChange);
     refreshBtn.addEventListener('click', fetchJobs);
+    refreshDlqBtn.addEventListener('click', fetchDlqJobs);
     
     // Close modal buttons
     closeButtons.forEach(button => {
@@ -56,6 +69,26 @@ function init() {
     
     // Initial data fetch
     fetchJobs();
+}
+
+// Switch between tabs
+function switchTab(tab) {
+    currentTab = tab;
+    
+    // Update tab buttons
+    jobsTab.classList.toggle('active', tab === 'jobs');
+    dlqTab.classList.toggle('active', tab === 'dlq');
+    
+    // Update tab content
+    jobsContent.classList.toggle('active', tab === 'jobs');
+    dlqContent.classList.toggle('active', tab === 'dlq');
+    
+    // Fetch data for the selected tab if needed
+    if (tab === 'jobs') {
+        fetchJobs();
+    } else if (tab === 'dlq') {
+        fetchDlqJobs();
+    }
 }
 
 // Fetch jobs from the API
@@ -132,6 +165,10 @@ function renderJobsTable() {
             <td class="actions-cell">
                 <button class="btn btn-success action-btn run-btn" data-id="${job.id}">Run Now</button>
                 <button class="btn action-btn view-btn" data-id="${job.id}">View</button>
+                ${job.status !== 'failed' ? `
+                <button class="btn ${job.status === 'active' ? 'btn-warning' : 'btn-success'} action-btn toggle-btn" data-id="${job.id}" data-status="${job.status}">
+                    ${job.status === 'active' ? 'Disable' : 'Enable'}
+                </button>` : ''}
                 <button class="btn btn-danger action-btn delete-btn" data-id="${job.id}">Delete</button>
             </td>
         `;
@@ -152,6 +189,54 @@ function renderJobsTable() {
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', handleDeleteJob);
     });
+    
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', handleToggleJobStatus);
+    });
+}
+
+// Handle toggle job status button click
+async function handleToggleJobStatus(event) {
+    const jobId = event.target.dataset.id;
+    const currentStatus = event.target.dataset.status;
+    const job = jobs.find(j => j.id === jobId);
+    
+    if (!job) return;
+    
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const actionText = currentStatus === 'active' ? 'disable' : 'enable';
+    
+    showConfirmModal(
+        `Are you sure you want to ${actionText} "${job.name}"?`,
+        async () => {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                // Refresh the jobs list
+                await fetchJobs();
+                
+                // Show success message
+                alert(`Job "${job.name}" ${actionText}d successfully`);
+            } catch (error) {
+                console.error(`Error ${actionText}ing job:`, error);
+                showError(`Failed to ${actionText} job: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+    );
 }
 
 // Handle filter change
@@ -246,6 +331,10 @@ function handleViewJob(event) {
         <div class="job-detail">
             <span class="job-detail-label">Status:</span> 
             <span class="status-badge status-${job.status}">${job.status}</span>
+            ${job.status !== 'failed' ? `
+            <button class="btn ${job.status === 'active' ? 'btn-warning' : 'btn-success'} action-btn toggle-btn" data-id="${job.id}" data-status="${job.status}" style="margin-left: 10px;">
+                ${job.status === 'active' ? 'Disable' : 'Enable'}
+            </button>` : ''}
         </div>
         <div class="job-detail">
             <span class="job-detail-label">Created:</span> ${formatDate(job.created_at)}
@@ -270,6 +359,16 @@ function handleViewJob(event) {
     
     // Show the modal
     jobDetailsModal.style.display = 'block';
+    
+    // Add event listener for the toggle button in the modal
+    const modalToggleBtn = jobDetailsContent.querySelector('.toggle-btn');
+    if (modalToggleBtn) {
+        modalToggleBtn.addEventListener('click', (event) => {
+            // Hide the modal before showing the confirmation
+            jobDetailsModal.style.display = 'none';
+            handleToggleJobStatus(event);
+        });
+    }
 }
 
 // Handle delete job button click
@@ -365,6 +464,213 @@ function formatDate(dateString) {
         minute: '2-digit',
         second: '2-digit'
     }).format(date);
+}
+
+// Fetch jobs from the DLQ
+async function fetchDlqJobs() {
+    showLoading(true);
+    hideError();
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/dlq`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        dlqJobs = await response.json();
+        renderDlqTable();
+    } catch (error) {
+        console.error('Error fetching DLQ jobs:', error);
+        showError(`Failed to load DLQ jobs: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Render the DLQ table
+function renderDlqTable() {
+    // Clear the table
+    dlqTableBody.innerHTML = '';
+    
+    if (dlqJobs.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="6" style="text-align: center;">No jobs in the Dead Letter Queue</td>
+        `;
+        dlqTableBody.appendChild(row);
+        return;
+    }
+    
+    // Sort jobs by updated_at (newest first)
+    dlqJobs.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    
+    // Add each job to the table
+    dlqJobs.forEach(job => {
+        const row = document.createElement('tr');
+        
+        // Format the schedule info
+        let scheduleInfo = '';
+        if (job.schedule_type === 'cron') {
+            scheduleInfo = `Cron: ${job.cron_expression}`;
+        } else if (job.schedule_type === 'specific_time') {
+            scheduleInfo = `Once: ${formatDate(job.specific_time)}`;
+        } else if (job.schedule_type === 'recurring') {
+            scheduleInfo = `Every ${job.interval_value} ${job.interval}(s)`;
+        }
+        
+        row.innerHTML = `
+            <td>${job.name}</td>
+            <td>${job.type}</td>
+            <td>${scheduleInfo}</td>
+            <td>${formatDate(job.updated_at)}</td>
+            <td class="error-cell">${job.error_message || 'None'}</td>
+            <td class="actions-cell">
+                <button class="btn btn-success action-btn reactivate-btn" data-id="${job.id}">Reactivate</button>
+                <button class="btn action-btn view-btn" data-id="${job.id}">View</button>
+                <button class="btn btn-warning action-btn complete-btn" data-id="${job.id}">Complete</button>
+                <button class="btn btn-danger action-btn delete-btn" data-id="${job.id}">Delete</button>
+            </td>
+        `;
+        
+        dlqTableBody.appendChild(row);
+    });
+    
+    // Add event listeners for action buttons
+    document.querySelectorAll('#dlq-table .view-btn').forEach(btn => {
+        btn.addEventListener('click', handleViewDlqJob);
+    });
+    
+    document.querySelectorAll('#dlq-table .delete-btn').forEach(btn => {
+        btn.addEventListener('click', handleDeleteDlqJob);
+    });
+    
+    document.querySelectorAll('#dlq-table .reactivate-btn').forEach(btn => {
+        btn.addEventListener('click', handleReactivateDlqJob);
+    });
+    
+    document.querySelectorAll('#dlq-table .complete-btn').forEach(btn => {
+        btn.addEventListener('click', handleCompleteDlqJob);
+    });
+}
+
+// Handle view DLQ job button click
+function handleViewDlqJob(event) {
+    const jobId = event.target.dataset.id;
+    const job = dlqJobs.find(j => j.id === jobId);
+    
+    if (!job) return;
+    
+    // Use the same view function as regular jobs
+    handleViewJob(event, job);
+}
+
+// Handle delete DLQ job button click
+function handleDeleteDlqJob(event) {
+    const jobId = event.target.dataset.id;
+    const job = dlqJobs.find(j => j.id === jobId);
+    
+    if (!job) return;
+    
+    showConfirmModal(
+        `Are you sure you want to delete "${job.name}" from the DLQ?`,
+        async () => {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                // Refresh the DLQ jobs list
+                await fetchDlqJobs();
+                
+                // Show success message
+                alert(`Job "${job.name}" deleted successfully`);
+            } catch (error) {
+                console.error('Error deleting job:', error);
+                showError(`Failed to delete job: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+    );
+}
+
+// Handle reactivate DLQ job button click
+function handleReactivateDlqJob(event) {
+    const jobId = event.target.dataset.id;
+    const job = dlqJobs.find(j => j.id === jobId);
+    
+    if (!job) return;
+    
+    showConfirmModal(
+        `Are you sure you want to reactivate "${job.name}"?`,
+        async () => {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_BASE_URL}/dlq/${jobId}/reactivate`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                // Refresh the DLQ jobs list
+                await fetchDlqJobs();
+                
+                // Show success message
+                alert(`Job "${job.name}" reactivated successfully`);
+            } catch (error) {
+                console.error('Error reactivating job:', error);
+                showError(`Failed to reactivate job: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+    );
+}
+
+// Handle complete DLQ job button click
+function handleCompleteDlqJob(event) {
+    const jobId = event.target.dataset.id;
+    const job = dlqJobs.find(j => j.id === jobId);
+    
+    if (!job) return;
+    
+    showConfirmModal(
+        `Are you sure you want to mark "${job.name}" as completed without running it?`,
+        async () => {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_BASE_URL}/dlq/${jobId}/complete`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                // Refresh the DLQ jobs list
+                await fetchDlqJobs();
+                
+                // Show success message
+                alert(`Job "${job.name}" marked as completed successfully`);
+            } catch (error) {
+                console.error('Error completing job:', error);
+                showError(`Failed to complete job: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+    );
 }
 
 // Initialize the dashboard when the DOM is loaded

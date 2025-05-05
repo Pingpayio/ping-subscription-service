@@ -12,38 +12,73 @@
     </header>
 
     <main>
-        <div class="controls">
-            <div class="filters">
-                <label for="status-filter">Status:</label>
-                <select id="status-filter">
-                    <option value="all">All</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="failed">Failed</option>
-                </select>
+        <div class="tabs">
+            <button id="jobs-tab" class="tab-btn active">Jobs</button>
+            <button id="dlq-tab" class="tab-btn">Dead Letter Queue</button>
+        </div>
+        
+        <!-- Jobs Tab Content -->
+        <div id="jobs-content" class="tab-content active">
+            <div class="controls">
+                <div class="filters">
+                    <label for="status-filter">Status:</label>
+                    <select id="status-filter">
+                        <option value="all">All</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button id="refresh-btn" class="btn">Refresh</button>
+                </div>
             </div>
-            <div class="actions">
-                <button id="refresh-btn" class="btn">Refresh</button>
+
+            <div class="table-container">
+                <table id="jobs-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Schedule</th>
+                            <th>Status</th>
+                            <th>Next Run</th>
+                            <th>Last Run</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobs-table-body">
+                        <!-- Jobs will be inserted here -->
+                    </tbody>
+                </table>
             </div>
         </div>
+        
+        <!-- DLQ Tab Content -->
+        <div id="dlq-content" class="tab-content">
+            <div class="controls">
+                <div class="actions">
+                    <button id="refresh-dlq-btn" class="btn">Refresh</button>
+                </div>
+            </div>
 
-        <div class="table-container">
-            <table id="jobs-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Schedule</th>
-                        <th>Status</th>
-                        <th>Next Run</th>
-                        <th>Last Run</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="jobs-table-body">
-                    <!-- Jobs will be inserted here -->
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table id="dlq-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Schedule</th>
+                            <th>Last Updated</th>
+                            <th>Error Message</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dlq-table-body">
+                        <!-- DLQ jobs will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="loading" class="loading">Loading...</div>
